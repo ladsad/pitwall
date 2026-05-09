@@ -1,9 +1,9 @@
-.databricks
-.env
-
+__pycache__/
 __builtins__.pyi
-__pycache__
-
+*.pyc
+.env
+.DS_Store
+dashboard/node_modules/
+dashboard/.next/
+*.parquet
 .cache
-.venv
-

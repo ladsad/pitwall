@@ -8,14 +8,33 @@ from pyspark.sql.types import (
     StringType, IntegerType, FloatType, BooleanType
 )
 
+import os
+import pathlib
 import sys
-sys.path.insert(0, '/Workspace/Repos/pitwall')
+
+# ── Resolve project root (works locally and on Databricks) ──────────────────
+PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+# Fallback for Databricks environment
+if os.path.exists('/Workspace/Repos/pitwall') and '/Workspace/Repos/pitwall' not in sys.path:
+    sys.path.insert(0, '/Workspace/Repos/pitwall')
+
 from config import SEASON, EVENT, RAW_PATH, SESSION_TYPES
 from utils.spark_session import get_spark_session
 from utils.schema import BRONZE_SCHEMA
 from utils.transforms import timedeltas_to_seconds
 
-fastf1.Cache.enable_cache("/tmp/fastf1_cache")
+# ── Cache Setup ─────────────────────────────────────────────────────────────
+# Use /tmp on Databricks/Linux, local .cache dir on Windows
+if os.name == "nt":
+    CACHE_DIR = PROJECT_ROOT / ".cache" / "fastf1"
+else:
+    CACHE_DIR = pathlib.Path("/tmp/fastf1_cache")
+
+CACHE_DIR.mkdir(parents=True, exist_ok=True)
+fastf1.Cache.enable_cache(str(CACHE_DIR))
 
 spark = get_spark_session("pitwall-ingest")
 
@@ -65,7 +84,7 @@ ingested_sessions = []
 skipped_sessions  = []
 
 for session_code in SESSION_TYPES:
-    print(f"\n{'─'*60}")
+    print(f"\n{'-'*60}")
     print(f"  Loading: {session_code}")
 
     try:

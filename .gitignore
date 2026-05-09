@@ -7,3 +7,5 @@ dashboard/node_modules/
 dashboard/.next/
 *.parquet
 .cache
+.vscode
+.gitignore

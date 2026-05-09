@@ -1,23 +1,13 @@
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 
-LAMBDA = 0.15
-
-SESSION_WEIGHTS = {
-    "R":   1.0,
-    "Q":   0.7,
-    "SQ":  0.6,
-    "S":   0.5,
-    "FP3": 0.35,
-    "FP2": 0.25,
-    "FP1": 0.15,
-}
+from config import SESSION_WEIGHTS, RECENCY_LAMBDA
 
 def add_recency_weight(df: DataFrame) -> DataFrame:
     max_round = df.agg(F.max("round_number")).collect()[0][0]
     return df.withColumn(
         "recency_weight",
-        F.exp(-LAMBDA * (F.lit(max_round) - F.col("round_number")))
+        F.exp(-RECENCY_LAMBDA * (F.lit(max_round) - F.col("round_number")))
     )
 
 def add_session_weight(df: DataFrame) -> DataFrame:

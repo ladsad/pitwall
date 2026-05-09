@@ -2,6 +2,8 @@ SEASON = 2026
 EVENT = "Melbourne Grand Prix"   
 ROUND_NUMBER = 1               
 
+SESSION_TYPES = ["FP1", "FP2", "FP3", "Q", "SQ", "S", "R"]
+
 # DBFS paths
 BASE_PATH = "dbfs:/pitwall"
 RAW_PATH = f"{BASE_PATH}/raw"

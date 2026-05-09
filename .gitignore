@@ -2,5 +2,8 @@
 .env
 
 __builtins__.pyi
+__pycache__
+
+.cache
 .venv
 

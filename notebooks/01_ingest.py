@@ -144,6 +144,7 @@ for session_code in SESSION_TYPES:
         )
 
         print(f"  Written to: {output_path}")
+        ingested_sessions.append(session_code)
 
 
     except Exception as e:

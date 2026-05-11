@@ -8,5 +8,4 @@ dashboard/.next/
 *.parquet
 .cache
 .vscode
-.gitignore
 context/

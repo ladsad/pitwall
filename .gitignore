@@ -9,3 +9,4 @@ dashboard/.next/
 .cache
 .vscode
 .gitignore
+context/

@@ -7,6 +7,7 @@ SESSION_TYPES = ["FP1", "FP2", "FP3", "Q", "SQ", "S", "R"]
 # Unity Catalog Volume paths
 BASE_PATH = "/Volumes/workspace/default/pitwall"
 RAW_PATH = f"{BASE_PATH}/raw"
+RESULTS_PATH = f"{BASE_PATH}/raw/results"
 CLEAN_PATH = f"{BASE_PATH}/clean"
 FEATURES_PATH = f"{BASE_PATH}/features"
 MODELS_PATH = f"{BASE_PATH}/models"

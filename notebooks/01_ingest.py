@@ -19,9 +19,9 @@ if str(PROJECT_ROOT) not in sys.path:
 if os.path.exists('/Workspace/Repos/pitwall') and '/Workspace/Repos/pitwall' not in sys.path:
     sys.path.insert(0, '/Workspace/Repos/pitwall')
 
-from config import SEASON, EVENT, RAW_PATH, SESSION_TYPES
+from config import SEASON, EVENT, CURRENT_ROUND, RAW_PATH, SESSION_TYPES, RESULTS_PATH
 from utils.spark_session import get_spark_session
-from utils.schema import BRONZE_SCHEMA
+from utils.schema import BRONZE_SCHEMA, RESULTS_SCHEMA
 from utils.transforms import timedeltas_to_seconds
 
 if os.name == "nt":
@@ -34,14 +34,11 @@ fastf1.Cache.enable_cache(str(CACHE_DIR))
 
 spark = get_spark_session("pitwall-ingest")
 
-print(f"Ingesting: Season {SEASON} | Event: {EVENT}")
+print(f"Ingesting: Season {SEASON} | Event: {EVENT} | Round: {CURRENT_ROUND}")
 print(f"Sessions: {SESSION_TYPES}")
 print(f"Output root: {RAW_PATH}")
 
 # SESSION TYPE NORMALISER 
-# FastF1 uses varied internal identifiers. We normalise to the short codes
-# defined in config.py so session_type is consistent downstream.
-
 SESSION_TYPE_MAP = {
     "Practice 1":           "FP1",
     "Practice 2":           "FP2",
@@ -53,10 +50,6 @@ SESSION_TYPE_MAP = {
 }
 
 # COLUMN SELECTION HELPER
-# FastF1 returns many columns we don't need (telemetry, weather snapshots, etc.).
-# We select only the columns in BRONZE_SCHEMA — minus the partition + tag cols
-# we add ourselves — to avoid schema drift if FastF1 adds new columns upstream.
-
 FASTF1_COLS_TO_KEEP = [
     "Driver", "DriverNumber", "Team",
     "LapNumber",
@@ -68,23 +61,15 @@ FASTF1_COLS_TO_KEEP = [
 ]
 
 # MAIN INGESTION LOOP
-# Iterates over all session types. For each:
-#   a) Load via FastF1 (with pick_quicklaps to drop telemetry-broken laps)
-#   b) Select and coerce columns
-#   c) Convert timedeltas to float seconds
-#   d) Tag session_type, season, event, session partition columns
-#   e) Create Spark DataFrame with explicit schema
-#   f) Write partitioned Parquet to Bronze
- 
 ingested_sessions = []
 skipped_sessions  = []
+race_session_obj  = None   # held for results ingestion below
 
 for session_code in SESSION_TYPES:
     print(f"\n{'-'*60}")
     print(f"  Loading: {session_code}")
 
     try:
-        # Load from FastF1
         session = fastf1.get_session(SEASON, EVENT, session_code)
         session.load(laps=True, telemetry=False, weather=False, messages=False)
 
@@ -103,12 +88,8 @@ for session_code in SESSION_TYPES:
                 laps_df[col] = None
         
         laps_df = laps_df[FASTF1_COLS_TO_KEEP].copy()
-
-        # Convert timedeltas
         laps_df = timedeltas_to_seconds(laps_df)
 
-        # Tag partition + metadata columns
-        # session_type: normalise FastF1's full name to our short code
         raw_session_name = session.name
         session_type_tag = SESSION_TYPE_MAP.get(raw_session_name, session_code)
 
@@ -121,7 +102,6 @@ for session_code in SESSION_TYPES:
             if bool_col in laps_df.columns:
                 laps_df[bool_col] = laps_df[bool_col].astype(str)
 
-        # Create Spark DataFrame with explicit schema
         sdf = spark.createDataFrame(laps_df, schema=BRONZE_SCHEMA)
 
         print(f"  {sdf.count()} laps loaded for {session_type_tag}")
@@ -133,36 +113,87 @@ for session_code in SESSION_TYPES:
             f"/session={session_code}"
         )
 
-        (
-            sdf.write
-               .mode("overwrite")
-               .parquet(output_path)
-        )
-
+        sdf.write.mode("overwrite").parquet(output_path)
         print(f"  Written to: {output_path}")
         ingested_sessions.append(session_code)
 
+        # Hold on to the Race session object — used for results ingestion below.
+        # We don't re-load it; session.results is already available after .load().
+        if session_type_tag == "R":
+            race_session_obj = session
 
     except Exception as e:
         print(f"  {session_code} failed — likely doesn't exist for this event.")
         print(f"  Error: {e}")
         skipped_sessions.append(session_code)
 
-# SUMMARY
+# SUMMARY — LAPS
+print(f"\n{'='*60}")
+print(f"  Lap ingestion complete")
+print(f"  Sessions ingested : {ingested_sessions}")
+print(f"  Sessions skipped  : {skipped_sessions}")
 
 if ingested_sessions:
-    last_code = SESSION_TYPES[[st for st in SESSION_TYPES if st in
-                                [s.replace("FP1","FP1").replace("Qualifying","Q")
-                                 for s in ingested_sessions]][-1]
-                               if False else -1]
- 
     verify_path = f"{RAW_PATH}/season={SEASON}/event={EVENT}"
-    verify_df   = spark.read.schema(BRONZE_SCHEMA).parquet(verify_path)
- 
-    print(f"\nSchema (from explicit definition):")
-    verify_df.printSchema()
- 
+    verify_df = spark.read.schema(BRONZE_SCHEMA).parquet(verify_path)
     print(f"\nRow counts by session_type:")
     verify_df.groupBy("session_type").count().orderBy("session_type").show()
+
+# RACE RESULTS INGESTION
+
+print(f"\n{'-'*60}")
+
+if race_session_obj is None:
+    print("  No Race session ingested — results write skipped.")
+    print("  Re-run after the Race session is available to populate results.")
 else:
-    print("\nNo sessions ingested successfully.")
+    print("  Ingesting race results...")
+
+    results_df = race_session_obj.results
+
+    RESULTS_COLS_MAP = {
+        "Abbreviation": "Driver",
+        "TeamName":      "TeamName",
+        "Position":      "Position",
+        "GridPosition":  "GridPosition",
+        "Status":        "Status",
+        "Points":        "Points",
+    }
+
+    # Select and rename to our schema column names
+    available = {k: v for k, v in RESULTS_COLS_MAP.items() if k in results_df.columns}
+    missing   = [k for k in RESULTS_COLS_MAP if k not in results_df.columns]
+    if missing:
+        print(f"  Missing results columns: {missing} — will be null.")
+        for col in missing:
+            results_df[RESULTS_COLS_MAP[col]] = None
+
+    results_pdf = results_df[list(available.keys())].rename(columns=available).copy()
+
+    # Cast position columns to int — FastF1 returns them as float
+    for pos_col in ("Position", "GridPosition"):
+        if pos_col in results_pdf.columns:
+            results_pdf[pos_col] = pd.to_numeric(results_pdf[pos_col], errors="coerce")
+            results_pdf[pos_col] = results_pdf[pos_col].astype("Int64")  # nullable int
+
+    results_pdf["Points"] = pd.to_numeric(results_pdf["Points"], errors="coerce").astype(float)
+
+    # Tag partition columns
+    results_pdf["season"]       = SEASON
+    results_pdf["event"]        = EVENT
+    results_pdf["round_number"] = CURRENT_ROUND
+
+    # Nullable Int64 → standard int before Spark (Spark doesn't read pandas Int64)
+    for pos_col in ("Position", "GridPosition"):
+        results_pdf[pos_col] = results_pdf[pos_col].astype(object).where(
+            results_pdf[pos_col].notna(), other=None
+        )
+
+    results_sdf = spark.createDataFrame(results_pdf, schema=RESULTS_SCHEMA)
+
+    results_output_path = f"{RESULTS_PATH}/season={SEASON}/event={EVENT}"
+    results_sdf.write.mode("overwrite").parquet(results_output_path)
+
+    print(f"  {results_sdf.count()} driver results written to: {results_output_path}")
+    print(f"\nResults:")
+    results_sdf.select("Driver", "TeamName", "Position", "Status").orderBy("Position").show(25)

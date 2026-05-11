@@ -46,3 +46,28 @@ GOLD_SCHEMA = StructType([
     StructField("session_weight",    FloatType(),   nullable=True),
     StructField("sample_weight",     FloatType(),   nullable=True),
 ])
+
+PREDICTIONS_SCHEMA = StructType([
+    StructField("driver",             StringType(),  True),
+    StructField("team",               StringType(),  True),
+    StructField("event",              StringType(),  True),
+    StructField("round",              IntegerType(), True),
+    StructField("season",             IntegerType(), True),
+    StructField("model_version",      StringType(),  True),
+    StructField("predicted_position", IntegerType(), True),
+    StructField("win_probability",    FloatType(),   True),   # probability[1] from GBT
+    StructField("uncertainty",        FloatType(),   True),   # ±% from bootstrap variance
+    StructField("generated_at",       StringType(),  True),   # ISO 8601 timestamp string
+])
+
+RESULTS_SCHEMA = StructType([
+    StructField("Driver",       StringType(),  True),   # three-letter code e.g. VER
+    StructField("TeamName",     StringType(),  True),
+    StructField("Position",     IntegerType(), True),   # race finishing position (label)
+    StructField("GridPosition", IntegerType(), True),   # starting grid position
+    StructField("Status",       StringType(),  True),   # "Finished", "+1 Lap", "DNF", etc.
+    StructField("Points",       FloatType(),   True),
+    StructField("season",       IntegerType(), True),
+    StructField("event",        StringType(),  True),
+    StructField("round_number", IntegerType(), True),
+])

@@ -19,7 +19,7 @@ if str(PROJECT_ROOT) not in sys.path:
 if os.path.exists('/Workspace/Repos/pitwall') and '/Workspace/Repos/pitwall' not in sys.path:
     sys.path.insert(0, '/Workspace/Repos/pitwall')
 
-from config import SEASON, EVENT, CURRENT_ROUND, RAW_PATH, SESSION_TYPES, RESULTS_PATH
+from config import SEASON, EVENT, ROUND_NUMBER, RAW_PATH, SESSION_TYPES, RESULTS_PATH
 from utils.spark_session import get_spark_session
 from utils.schema import BRONZE_SCHEMA, RESULTS_SCHEMA
 from utils.transforms import timedeltas_to_seconds
@@ -34,7 +34,7 @@ fastf1.Cache.enable_cache(str(CACHE_DIR))
 
 spark = get_spark_session("pitwall-ingest")
 
-print(f"Ingesting: Season {SEASON} | Event: {EVENT} | Round: {CURRENT_ROUND}")
+print(f"Ingesting: Season {SEASON} | Event: {EVENT} | Round: {ROUND_NUMBER}")
 print(f"Sessions: {SESSION_TYPES}")
 print(f"Output root: {RAW_PATH}")
 
@@ -181,7 +181,7 @@ else:
     # Tag partition columns
     results_pdf["season"]       = SEASON
     results_pdf["event"]        = EVENT
-    results_pdf["round_number"] = CURRENT_ROUND
+    results_pdf["round_number"] = ROUND_NUMBER
 
     # Nullable Int64 → standard int before Spark (Spark doesn't read pandas Int64)
     for pos_col in ("Position", "GridPosition"):

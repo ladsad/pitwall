@@ -12,12 +12,10 @@ import os
 import pathlib
 import sys
 
-# ── Resolve project root (works locally and on Databricks) ──────────────────
 PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-# Fallback for Databricks environment
 if os.path.exists('/Workspace/Repos/pitwall') and '/Workspace/Repos/pitwall' not in sys.path:
     sys.path.insert(0, '/Workspace/Repos/pitwall')
 
@@ -26,8 +24,6 @@ from utils.spark_session import get_spark_session
 from utils.schema import BRONZE_SCHEMA
 from utils.transforms import timedeltas_to_seconds
 
-# ── Cache Setup ─────────────────────────────────────────────────────────────
-# Use /tmp on Databricks/Linux, local .cache dir on Windows
 if os.name == "nt":
     CACHE_DIR = PROJECT_ROOT / ".cache" / "fastf1"
 else:

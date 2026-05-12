@@ -20,10 +20,7 @@ spark = get_spark_session("pitwall-eda")
 print(f"EDA: Season {SEASON} | Event: {EVENT} | Round: {ROUND_NUMBER}")
 print(f"Reading Gold from: {FEATURES_PATH}")
 
-#  1. LOAD GOLD 
-# Load all available Gold data for the season — EDA is most useful across
-# multiple rounds so we can see patterns, not just a single weekend.
-# Filters to completed rounds (race_position not null = race has been run).
+#  LOAD GOLD 
 
 gold_df = (
     spark.read.format("delta").load(FEATURES_PATH)
@@ -42,9 +39,7 @@ gold_df.groupBy("round_number", "event", "session_type") \
 completed_df = gold_df.filter(F.col("race_position").isNotNull())
 print(f"Rows from completed rounds (race_position not null): {completed_df.count():,}")
 
-#  2. FEATURE DISTRIBUTIONS 
-# Basic descriptive stats for all engineered features.
-# Useful for spotting outliers, skew, or unexpected nulls before training.
+#  FEATURE DISTRIBUTIONS 
 
 print("\n--- Feature distributions (all sessions, completed rounds) ---")
 feature_cols = [
@@ -53,10 +48,7 @@ feature_cols = [
 ]
 completed_df.select(feature_cols).summary("count", "mean", "stddev", "min", "25%", "75%", "max").show()
 
-#  3. FEATURE DISTRIBUTIONS BY SESSION TYPE 
-# Check whether session type produces meaningfully different feature values.
-# This validates that our session_weight design is directionally correct —
-# Race rows should show tighter consistency_score than FP1 rows, for example.
+#  FEATURE DISTRIBUTIONS BY SESSION TYPE 
 
 print("\n--- Avg feature values by session_type ---")
 gold_df.groupBy("session_type").agg(
@@ -67,13 +59,7 @@ gold_df.groupBy("session_type").agg(
     F.count("*").alias("row_count"),
 ).orderBy("session_type").show()
 
-#  4. CORRELATION: FEATURES vs RACE POSITION 
-# Pearson correlation between each feature and race finishing position.
-# Negative correlation = lower feature value → better finishing position (good).
-# This is the core validation: do our features actually predict race outcomes?
-#
-# Uses Race session rows only — we want to correlate race-day features
-# with the race result, not practice lap behaviour.
+#  CORRELATION: FEATURES vs RACE POSITION 
 
 print("\n--- Pearson correlation with race_position (Race session rows only) ---")
 race_df = completed_df.filter(F.col("session_type") == "R")
@@ -83,10 +69,7 @@ for col in feature_cols:
     direction = "↑ worse position" if corr > 0 else "↓ better position"
     print(f"  {col:<25} r = {corr:+.4f}   ({direction})")
 
-#  5. CORRELATION ACROSS ALL SESSION TYPES 
-# Same correlation check but broken out by session_type.
-# Tells us which session types carry the strongest predictive signal —
-# validates the relative ordering of our SESSION_WEIGHTS in config.py.
+#  CORRELATION ACROSS ALL SESSION TYPES 
 
 print("\n--- Correlation with race_position by session_type ---")
 print(f"  {'session_type':<8}", end="")
@@ -108,10 +91,7 @@ for session_type in ["FP1", "FP2", "FP3", "Q", "SQ", "S", "R"]:
             print(f"  {'N/A':<14}", end="")
     print(f"  (n={count})")
 
-#  6. TOP PERFORMERS BY FEATURE 
-# For the current event: who leads each feature metric?
-# Useful for a sanity check — fastest lap delta should roughly match
-# who we know had the best pace that weekend.
+#  TOP PERFORMERS BY FEATURE 
 
 print(f"\n--- Current event feature leaders ({EVENT} {SEASON}) ---")
 current_df = gold_df.filter(F.col("event") == EVENT)
@@ -136,10 +116,7 @@ if current_race.count() > 0:
 else:
     print("  No Race session rows for this event yet.")
 
-#  7. TEAM vs DRIVER PACE GAP 
-# How much of the pace difference within a team is explained by the car
-# vs the driver? pace_vs_teammate isolates the driver contribution.
-# Large positive values = driver consistently slower than teammate.
+#  TEAM vs DRIVER PACE GAP 
 
 print("\n--- pace_vs_teammate by driver (Race session, completed rounds) ---")
 race_df.groupBy("driver", "team").agg(
@@ -148,21 +125,16 @@ race_df.groupBy("driver", "team").agg(
     F.count("*").alias("laps"),
 ).orderBy("avg_vs_teammate").show(20)
 
-#  8. TYRE COMPOUND EFFECT ON PACE 
-# Does compound affect lap_time_delta? We'd expect SOFT to have lower delta
-# (closer to session best), HARD to be higher. If not, our tyre features
-# may need revisiting.
+#  TYRE COMPOUND EFFECT ON PACE 
 
 print("\n--- avg lap_time_delta by compound (all sessions) ---")
-gold_df.filter(F.col("Compound") != "UNKNOWN").groupBy("Compound").agg(
+gold_df.filter(F.col("compound") != "UNKNOWN").groupBy("compound").agg(
     F.round(F.avg("lap_time_delta"), 3).alias("avg_lap_delta"),
     F.round(F.avg("tyre_deg_rate"),  3).alias("avg_tyre_deg"),
     F.count("*").alias("laps"),
 ).orderBy("avg_lap_delta").show()
 
-#  9. PACE TREND LEADERS 
-# Which drivers are on an improving trajectory into this round?
-# Only meaningful once we have 3+ rounds of data.
+#  PACE TREND LEADERS 
 
 print("\n--- pace_trend by driver (negative = improving) ---")
 trend_df = gold_df.filter(
@@ -175,9 +147,7 @@ if trend_df.count() > 0:
 else:
     print("  pace_trend not yet available (need 3+ rounds of data).")
 
-#  10. NULL AUDIT 
-# Final check — null rates across all features for the full season dataset.
-# High null rates in a feature = potential problem before training.
+#  NULL AUDIT 
 
 print("\n--- Null rates across full season Gold (%) ---")
 all_cols = feature_cols + ["race_position", "pace_trend"]

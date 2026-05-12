@@ -203,6 +203,7 @@ gold_df = base_df.select(
     F.col("season").cast("integer"),
     F.col("session_type").cast("string"),
     F.col("lap_number").cast("integer"),
+    F.col("Compound").alias("compound").cast("string"),
     F.col("lap_time_delta").cast("float"),
     F.col("consistency_score").cast("float"),
     F.col("best_sector_combo").cast("float"),
@@ -224,6 +225,7 @@ print(f"\nGold rows to write: {gold_df.count():,}")
     .write
     .format("delta")
     .mode("overwrite")
+    .option("mergeSchema", "true")
     .option("replaceWhere", f"season = {SEASON} AND event = '{EVENT}'")
     .partitionBy("season", "event", "session_type")
     .save(FEATURES_PATH)

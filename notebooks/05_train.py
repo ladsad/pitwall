@@ -14,7 +14,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from pyspark.sql import functions as F
 from pyspark.ml import Pipeline
 from pyspark.ml.feature import VectorAssembler, StringIndexer
-from pyspark.ml.classification import GBTClassifier, LogisticRegression
+from pyspark.ml.classification import RandomForestClassifier, LogisticRegression
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator
 
 from utils.spark_session import get_spark_session
@@ -103,13 +103,13 @@ assembler = VectorAssembler(
     handleInvalid="keep",   # rows with remaining nulls → zero imputation
 )
 
-gbt = GBTClassifier(
+# GBTClassifier only supports binary labels — use RandomForestClassifier for multiclass (20 positions).
+rf = RandomForestClassifier(
     featuresCol="features",
     labelCol="label",
     weightCol="sample_weight",
-    maxIter=50,          # 50 trees — enough signal at this data size without overfitting
-    maxDepth=4,          # shallow trees reduce overfitting on ~2400 rows
-    stepSize=0.1,        # learning rate
+    numTrees=100,        # 100 trees — stable estimates at this data size
+    maxDepth=4,          # shallow trees reduce overfitting on ~1300 rows
     seed=42,
 )
 
@@ -117,7 +117,7 @@ pipeline = Pipeline(stages=[
     compound_indexer,
     label_indexer,
     assembler,
-    gbt,
+    rf,
 ])
 
 #  TRAIN / VALIDATION SPLIT 
@@ -191,13 +191,13 @@ print("Done.")
 
 #  FEATURE IMPORTANCE 
 
-gbt_model     = final_model.stages[-1]
+rf_model      = final_model.stages[-1]
 feature_names = NUMERIC_COLS + ["compound_idx"]
-importances   = gbt_model.featureImportances.toArray()
+importances   = rf_model.featureImportances.toArray()
 
 print("\nFeature importances:")
 for name, imp in sorted(zip(feature_names, importances), key=lambda x: -x[1]):
-    bar = "█" * int(imp * 40)
+    bar = "#" * int(imp * 40)
     print(f"  {name:<25} {imp:.4f}  {bar}")
 
 #  SAVE MODEL 

@@ -2,12 +2,14 @@ import os
 import pathlib
 import sys
 
-PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
+try:
+    PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
+except NameError:
+    # Running as a Databricks notebook — __file__ is not defined
+    PROJECT_ROOT = pathlib.Path("/Workspace/Repos/pitwall")
+
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
-
-if os.path.exists('/Workspace/Repos/pitwall') and '/Workspace/Repos/pitwall' not in sys.path:
-    sys.path.insert(0, '/Workspace/Repos/pitwall')
 
 from pyspark.sql import functions as F
 from pyspark.sql import Window

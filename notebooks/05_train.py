@@ -77,9 +77,16 @@ NUMERIC_COLS     = [
     "pace_trend",
 ]
 
-# pace_trend is null for early rounds — GBT cannot handle nulls natively.
-# Impute with 0.0 (neutral — no trend signal) before assembly.
-train_df = train_df.fillna(0.0, subset=["pace_trend"])
+# fillna() only fixes SQL null — it does NOT replace IEEE NaN.
+# consistency_score is NaN (not null) when a driver has a single lap in a session
+# (stddev of one value is undefined). Replace NaN → 0.0 across all numeric cols first,
+# then fill any remaining SQL nulls (e.g. pace_trend on first round).
+for _col in NUMERIC_COLS:
+    train_df = train_df.withColumn(
+        _col,
+        F.when(F.isnan(F.col(_col)), F.lit(0.0)).otherwise(F.col(_col)),
+    )
+train_df = train_df.fillna(0.0, subset=NUMERIC_COLS)
 
 #  BUILD MLLLIB PIPELINE 
 

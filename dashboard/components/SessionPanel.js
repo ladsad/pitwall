@@ -1,7 +1,26 @@
+"use client";
+
+import { motion, useReducedMotion } from 'framer-motion';
+
 export default function SessionPanel({ driver }) {
+  const shouldReduceMotion = useReducedMotion();
+
   if (!driver || !driver.sessions) return null;
 
   const sessionKeys = ['FP1', 'FP2', 'FP3', 'Q', 'SPR', 'SQ'];
+
+  const getVariants = (hasData) => {
+    if (shouldReduceMotion || !hasData) {
+      return {
+        hidden: { opacity: hasData ? 1 : 0.3, y: 0 },
+        visible: { opacity: hasData ? 1 : 0.3, y: 0 }
+      };
+    }
+    return {
+      hidden: { opacity: 0, y: 6 },
+      visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } }
+    };
+  };
 
   return (
     <div className="flex flex-col h-full bg-[#000000]">
@@ -12,17 +31,20 @@ export default function SessionPanel({ driver }) {
       </div>
       
       <div style={{ backgroundColor: '#141414' }} className="flex-1 grid grid-cols-3 md:grid-cols-6 gap-[1px] p-[1px]">
-        {sessionKeys.map(key => {
+        {sessionKeys.map((key, idx) => {
           const session = driver.sessions[key];
           const isQ = key === 'Q';
           const hasData = session !== null && session !== undefined;
           
           return (
-            <div 
-              key={key}
+            <motion.div 
+              key={`${driver.driver}-${key}`}
+              initial="hidden"
+              animate="visible"
+              variants={getVariants(hasData)}
+              transition={{ delay: hasData && !shouldReduceMotion ? idx * 0.03 : 0 }}
               style={{ 
                 backgroundColor: '#000000',
-                opacity: hasData ? 1 : 0.3,
                 borderColor: isQ && hasData ? '#e10600' : 'transparent',
                 borderWidth: '1px',
                 borderStyle: 'solid'
@@ -43,7 +65,7 @@ export default function SessionPanel({ driver }) {
               <span className="text-[9px] text-[#aaaaaa]">
                 {hasData ? `w=${session.weight.toFixed(2)}` : '—'}
               </span>
-            </div>
+            </motion.div>
           );
         })}
       </div>

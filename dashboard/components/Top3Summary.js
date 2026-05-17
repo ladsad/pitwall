@@ -1,4 +1,9 @@
+"use client";
+
+import { motion, useReducedMotion } from 'framer-motion';
+
 export default function Top3Summary({ predictions, lambda }) {
+  const shouldReduceMotion = useReducedMotion();
   const top3 = predictions.slice(0, 3);
   
   // Calculate recency decays
@@ -17,7 +22,13 @@ export default function Top3Summary({ predictions, lambda }) {
       <div className="p-4 flex-1 flex flex-col justify-between">
         <div className="flex flex-col gap-2">
           {top3.map((p, idx) => (
-            <div key={p.driver} className="flex items-center justify-between">
+            <motion.div 
+              key={p.driver} 
+              initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.4, delay: shouldReduceMotion ? 0 : idx * 0.1 }}
+              className="flex items-center justify-between"
+            >
               <div className="flex items-center gap-2">
                 <span className="w-4 text-right text-xs text-[#666666]">P{idx + 1}</span>
                 <span 
@@ -31,11 +42,16 @@ export default function Top3Summary({ predictions, lambda }) {
                 <span className="text-[#ffffff]">{(p.win_probability * 100).toFixed(1)}%</span>
                 <span className="w-10 text-right text-[#666666]">±{(p.uncertainty * 100).toFixed(1)}</span>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
         
-        <div className="mt-4 pt-4 border-t border-[#141414]">
+        <motion.div 
+          initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4, delay: shouldReduceMotion ? 0 : (top3.length * 0.1) + 0.3 }}
+          className="mt-4 pt-4 border-t border-[#141414]"
+        >
           <div className="text-[9px] text-[#666666] tracking-widest uppercase mb-2">Recency Decay (λ={lambda})</div>
           <div className="flex justify-between text-xs text-[#aaaaaa]">
             {decays.map((d, i) => {
@@ -48,7 +64,7 @@ export default function Top3Summary({ predictions, lambda }) {
               );
             })}
           </div>
-        </div>
+        </motion.div>
       </div>
     </div>
   );

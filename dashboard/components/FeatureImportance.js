@@ -1,4 +1,10 @@
+"use client";
+
+import { motion, useReducedMotion } from 'framer-motion';
+
 export default function FeatureImportance({ features }) {
+  const shouldReduceMotion = useReducedMotion();
+
   // Sort features by importance just in case
   const sortedFeatures = [...features].sort((a, b) => b.importance - a.importance);
   const maxVal = sortedFeatures.length > 0 ? sortedFeatures[0].importance : 1;
@@ -22,6 +28,8 @@ export default function FeatureImportance({ features }) {
       <div className="p-4 flex flex-col gap-3">
         {sortedFeatures.map((f, i) => {
           const ratio = f.importance / maxVal;
+          const targetScale = Math.max(ratio, 0.01);
+
           return (
             <div key={i} className="flex flex-col gap-1">
               <div className="flex justify-between text-xs">
@@ -29,13 +37,21 @@ export default function FeatureImportance({ features }) {
                 <span className="text-[#ffffff]">{f.importance.toFixed(3)}</span>
               </div>
               <div className="h-1.5 w-full bg-[#141414] overflow-hidden">
-                <div 
+                <motion.div 
+                  initial={shouldReduceMotion ? { scaleX: targetScale } : { scaleX: 0 }}
+                  animate={{ scaleX: targetScale }}
+                  transition={{ 
+                    delay: shouldReduceMotion ? 0 : i * 0.06, 
+                    duration: shouldReduceMotion ? 0 : 0.7, 
+                    ease: [0.16, 1, 0.3, 1] 
+                  }}
                   className="h-full"
                   style={{ 
-                    width: `${Math.max(ratio * 100, 1)}%`,
+                    transformOrigin: "left",
+                    width: '100%',
                     backgroundColor: getColor(ratio)
                   }}
-                ></div>
+                ></motion.div>
               </div>
             </div>
           );

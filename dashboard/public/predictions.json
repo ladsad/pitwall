@@ -1,7 +1,163 @@
 {
-    "model_version": "base_r00",
-    "generated_at": "2025-01-01T00:00:00Z",
-    "event": "placeholder",
-    "round": 0,
-    "predictions": []
+  "model_version": "base_r01",
+  "generated_at": "2026-05-17T05:27:27.666565+00:00",
+  "event": "Melbourne Grand Prix",
+  "round": 1,
+  "season": 2026,
+  "predictions": [
+    {
+      "driver": "RUS",
+      "team": "Mercedes",
+      "predicted_position": 1,
+      "win_probability": 0.2153,
+      "uncertainty": 0.0005
+    },
+    {
+      "driver": "LEC",
+      "team": "Ferrari",
+      "predicted_position": 2,
+      "win_probability": 0.0765,
+      "uncertainty": 0.0002
+    },
+    {
+      "driver": "OCO",
+      "team": "Haas F1 Team",
+      "predicted_position": 3,
+      "win_probability": 0.0719,
+      "uncertainty": 0.0002
+    },
+    {
+      "driver": "BEA",
+      "team": "Haas F1 Team",
+      "predicted_position": 4,
+      "win_probability": 0.0713,
+      "uncertainty": 0.0002
+    },
+    {
+      "driver": "HAD",
+      "team": "Red Bull Racing",
+      "predicted_position": 5,
+      "win_probability": 0.0696,
+      "uncertainty": 0.0002
+    },
+    {
+      "driver": "HAM",
+      "team": "Ferrari",
+      "predicted_position": 6,
+      "win_probability": 0.0664,
+      "uncertainty": 0.0002
+    },
+    {
+      "driver": "NOR",
+      "team": "McLaren",
+      "predicted_position": 7,
+      "win_probability": 0.0511,
+      "uncertainty": 0.0001
+    },
+    {
+      "driver": "BOR",
+      "team": "Audi",
+      "predicted_position": 8,
+      "win_probability": 0.035,
+      "uncertainty": 0.0004
+    },
+    {
+      "driver": "COL",
+      "team": "Alpine",
+      "predicted_position": 9,
+      "win_probability": 0.0349,
+      "uncertainty": 0.0005
+    },
+    {
+      "driver": "GAS",
+      "team": "Alpine",
+      "predicted_position": 10,
+      "win_probability": 0.0339,
+      "uncertainty": 0.0001
+    },
+    {
+      "driver": "ANT",
+      "team": "Mercedes",
+      "predicted_position": 11,
+      "win_probability": 0.0337,
+      "uncertainty": 0.0001
+    },
+    {
+      "driver": "ALB",
+      "team": "Williams",
+      "predicted_position": 12,
+      "win_probability": 0.0337,
+      "uncertainty": 0.0001
+    },
+    {
+      "driver": "HUL",
+      "team": "Audi",
+      "predicted_position": 13,
+      "win_probability": 0.0327,
+      "uncertainty": 0.0001
+    },
+    {
+      "driver": "PIA",
+      "team": "McLaren",
+      "predicted_position": 14,
+      "win_probability": 0.0321,
+      "uncertainty": 0.0002
+    },
+    {
+      "driver": "VER",
+      "team": "Red Bull Racing",
+      "predicted_position": 15,
+      "win_probability": 0.0316,
+      "uncertainty": 0.0001
+    },
+    {
+      "driver": "LIN",
+      "team": "Racing Bulls",
+      "predicted_position": 16,
+      "win_probability": 0.0316,
+      "uncertainty": 0.0018
+    },
+    {
+      "driver": "LAW",
+      "team": "Racing Bulls",
+      "predicted_position": 17,
+      "win_probability": 0.0274,
+      "uncertainty": 0.0001
+    },
+    {
+      "driver": "SAI",
+      "team": "Williams",
+      "predicted_position": 18,
+      "win_probability": 0.0263,
+      "uncertainty": 0.0015
+    },
+    {
+      "driver": "ALO",
+      "team": "Aston Martin",
+      "predicted_position": 19,
+      "win_probability": 0.0128,
+      "uncertainty": 0.0
+    },
+    {
+      "driver": "BOT",
+      "team": "Cadillac",
+      "predicted_position": 20,
+      "win_probability": 0.0054,
+      "uncertainty": 0.0002
+    },
+    {
+      "driver": "PER",
+      "team": "Cadillac",
+      "predicted_position": 21,
+      "win_probability": 0.0044,
+      "uncertainty": 0.001
+    },
+    {
+      "driver": "STR",
+      "team": "Aston Martin",
+      "predicted_position": 22,
+      "win_probability": 0.0025,
+      "uncertainty": 0.0
+    }
+  ]
 }

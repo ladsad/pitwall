@@ -18,7 +18,7 @@ from pyspark.ml import PipelineModel
 from utils.spark_session import get_spark_session
 from config import (
     SEASON, EVENT, ROUND_NUMBER,
-    FEATURES_PATH, MODELS_PATH, PREDICTIONS_PATH,
+    BASE_PATH, FEATURES_PATH, MODELS_PATH, PREDICTIONS_PATH,
 )
 
 spark = get_spark_session("pitwall-predict")
@@ -263,12 +263,14 @@ payload = {
 }
 
 # Write locally in the repo so git push triggers Vercel redeploy
-dashboard_json_path = PROJECT_ROOT / "dashboard" / "public" / "predictions.json"
+dashboard_json_path = BASE_PATH + "/dashboard/public/predictions.json"
+dbutils.fs.put(dashboard_json_path, json.dumps(payload, indent=2), overwrite=True)
+"""
 dashboard_json_path.parent.mkdir(parents=True, exist_ok=True)
 
 with open(dashboard_json_path, "w") as f:
     json.dump(payload, f, indent=2)
-
+"""
 print(f"predictions.json written to: {dashboard_json_path}")
 print(f"\nNext step: git add dashboard/public/predictions.json && git push")
 print(f"Vercel will redeploy automatically within ~30 seconds.")

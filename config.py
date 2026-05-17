@@ -1,6 +1,6 @@
 SEASON = 2026
-EVENT = "Melbourne Grand Prix"   
-ROUND_NUMBER = 1               
+EVENT = "Chinese Grand Prix"   
+ROUND_NUMBER = 2
 
 SESSION_TYPES = ["FP1", "FP2", "FP3", "Q", "SQ", "S", "R"]
 

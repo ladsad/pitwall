@@ -215,6 +215,95 @@ final_preds.select(
     "driver", "team", "win_probability", "uncertainty", "predicted_position"
 ).show(25)
 
+#  SESSION SCORES PER DRIVER 
+
+SESSION_TYPES = ["FP1", "FP2", "FP3", "Q", "SQ", "S"]
+SESSION_WEIGHTS = {"FP1": 0.15, "FP2": 0.25, "FP3": 0.35, "Q": 0.70, "SQ": 0.60, "S": 0.50}
+
+session_scores_raw = (
+    predictions_raw
+    .groupBy("driver", "session_type")
+    .agg(F.avg("lap_time_delta").alias("avg_delta"))
+    .collect()
+)
+
+# Build {driver: {session_type: avg_delta}} lookup
+from collections import defaultdict
+driver_session_map = defaultdict(dict)
+for row in session_scores_raw:
+    driver_session_map[row["driver"]][row["session_type"]] = row["avg_delta"]
+
+#  FEATURE IMPORTANCE 
+
+FEATURE_COLS = [
+    "lap_time_delta",
+    "consistency_score",
+    "best_sector_combo",
+    "tyre_deg_rate",
+    "pace_vs_teammate",
+    "pace_trend",
+]
+
+gbt_model = model.stages[-1]  # GBTClassifier is last stage
+importances = gbt_model.featureImportances.toArray().tolist()
+
+feature_importance = [
+    {"feature": name, "importance": round(float(imp), 4)}
+    for name, imp in sorted(
+        zip(FEATURE_COLS, importances[:len(FEATURE_COLS)]),
+        key=lambda x: x[1],
+        reverse=True,
+    )
+]
+
+#  HISTORICAL ACCURACY (season so far) 
+
+history_df = (
+    spark.read.format("delta").load(PREDICTIONS_PATH)
+    .filter(
+        (F.col("season") == SEASON)
+        & (F.col("model_version").startswith("base_r"))   # post-race models only
+        & (F.col("predicted_position") == 1)
+    )
+    .select("event", "driver", "round")
+    .withColumnRenamed("driver", "predicted")
+)
+
+# Actual race winners: from Gold features, race_position=1
+actuals_df = (
+    spark.read.format("delta").load(FEATURES_PATH)
+    .filter(
+        (F.col("season") == SEASON)
+        & (F.col("session_type") == "R")
+        & (F.col("race_position") == 1)
+    )
+    .select("event", "driver")
+    .distinct()
+    .withColumnRenamed("driver", "actual")
+)
+
+history_rows = (
+    history_df
+    .join(actuals_df, on="event", how="inner")
+    .withColumn("top3_hit", F.col("predicted") == F.col("actual"))
+    .orderBy("round")
+    .select("event", "predicted", "actual", "top3_hit")
+    .collect()
+)
+
+history = [
+    {
+        "event":     row["event"],
+        "predicted": row["predicted"],
+        "actual":    row["actual"],
+        "top3_hit":  bool(row["top3_hit"]),
+    }
+    for row in history_rows
+]
+
+season_top3_hits = sum(1 for h in history if h["top3_hit"])
+season_accuracy  = round(season_top3_hits / len(history), 4) if history else 0.0
+
 #  WRITE PREDICTIONS DELTA 
 
 output_df = final_preds.select(
@@ -240,16 +329,22 @@ output_df = final_preds.select(
 
 print(f"\nPredictions Delta written to: {PREDICTIONS_PATH}")
 
-#  EXPORT predictions.json FOR DASHBOARD 
+# ── EXPORT predictions.json FOR DASHBOARD ─────────────────────────────────────
 
-rows = output_df.orderBy(F.desc("win_probability")).collect()
+rows = final_preds.orderBy(F.desc("win_probability")).collect()
 
 payload = {
-    "model_version": model_version,
-    "generated_at":  datetime.now(timezone.utc).isoformat(),
-    "event":         EVENT,
-    "round":         ROUND_NUMBER,
-    "season":        SEASON,
+    "model_version":   model_version,
+    "generated_at":    datetime.now(timezone.utc).isoformat(),
+    "event":           EVENT,
+    "round":           ROUND_NUMBER,
+    "season":          SEASON,
+    "sessions_used":   [row["session_type"] for row in predictions_raw.select("session_type").distinct().collect()],
+    "season_accuracy": {
+        "top3_pct": season_accuracy,
+        "races":    len(history),
+    },
+    "recency_lambda": 0.15,
     "predictions": [
         {
             "driver":             row["driver"],
@@ -257,20 +352,28 @@ payload = {
             "predicted_position": row["predicted_position"],
             "win_probability":    round(float(row["win_probability"]), 4),
             "uncertainty":        round(float(row["uncertainty"]), 4),
+            "trend":              "flat",   # placeholder 
+            "sessions": {
+                s: (
+                    {
+                        "score":  round(float(driver_session_map[row["driver"]].get(s, 0.0)), 2),
+                        "weight": SESSION_WEIGHTS[s],
+                    }
+                    if s in driver_session_map[row["driver"]]
+                    else None
+                )
+                for s in SESSION_TYPES
+            },
         }
         for row in rows
     ],
+    "feature_importance": feature_importance,
+    "history":            history,
 }
 
-# Write locally in the repo so git push triggers Vercel redeploy
 dashboard_json_path = BASE_PATH + "/dashboard/public/predictions.json"
 dbutils.fs.put(dashboard_json_path, json.dumps(payload, indent=2), overwrite=True)
-"""
-dashboard_json_path.parent.mkdir(parents=True, exist_ok=True)
 
-with open(dashboard_json_path, "w") as f:
-    json.dump(payload, f, indent=2)
-"""
 print(f"predictions.json written to: {dashboard_json_path}")
 print(f"\nNext step: git add dashboard/public/predictions.json && git push")
 print(f"Vercel will redeploy automatically within ~30 seconds.")

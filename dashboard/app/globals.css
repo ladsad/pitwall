@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+body {
+  background-color: #000000;
+  color: #e8e8e8;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  margin: 0;
+  padding: 0;
+  /* Hide scrollbar for a cleaner look but allow scrolling */
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+body::-webkit-scrollbar {
+  display: none;
+}
+
+* {
+  box-sizing: border-box;
+}

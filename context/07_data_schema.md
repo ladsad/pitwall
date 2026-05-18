@@ -52,17 +52,43 @@ All timedelta columns converted to float seconds before saving.
 ## predictions.json structure
 ```json
 {
-  "model_version": "qualifying_r06",
-  "generated_at": "2025-05-10T14:32:00Z",
-  "event": "Monaco Grand Prix",
-  "round": 6,
+  "model_version": "base_r02",
+  "generated_at": "2026-05-17T16:13:55.682960+00:00",
+  "event": "Chinese Grand Prix",
+  "round": 2,
+  "season": 2026,
+  "sessions_used": ["S", "SQ", "R", "Q", "FP1"],
+  "season_accuracy": {
+    "top3_pct": 1.0,
+    "races": 1
+  },
+  "recency_lambda": 0.15,
   "predictions": [
     {
-      "driver": "VER",
-      "team": "Red Bull Racing",
-      "win_probability": 0.42,
-      "uncertainty": 0.03,
-      "predicted_position": 1
+      "driver": "ANT",
+      "team": "Mercedes",
+      "predicted_position": 1,
+      "win_probability": 0.1641,
+      "uncertainty": 0.0003,
+      "trend": "flat",
+      "sessions": {
+        "FP1": { "score": 3.09, "weight": 0.15 },
+        "Q": { "score": 0.55, "weight": 0.7 }
+      }
+    }
+  ],
+  "feature_importance": [
+    {
+      "feature": "consistency_score",
+      "importance": 0.3502
+    }
+  ],
+  "history": [
+    {
+      "event": "Melbourne Grand Prix",
+      "predicted": "RUS",
+      "actual": "RUS",
+      "top3_hit": true
     }
   ]
 }

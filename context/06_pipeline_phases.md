@@ -3,7 +3,7 @@
 ## Phase 1 — Ingestion (`01_ingest.py`)
 - **Input**: FastF1 API
 - **Sessions ingested**: FP1, FP2, FP3, Qualifying, Sprint Qualifying, Sprint, Race — ALL types
-- **Output**: `dbfs:/pitwall/raw/season=…/event=…/session=…/` (Parquet)
+- **Output**: `/Volumes/workspace/default/pitwall/raw/season=…/event=…/session=…/` (Parquet)
 - **Key steps**:
   - `fastf1.get_session(year, event, session)` + `session.load()`
   - `pick_quicklaps()` to filter telemetry-broken laps at API level
@@ -14,7 +14,7 @@
 
 ## Phase 2 — Cleaning (`02_clean.py`)
 - **Input**: Bronze Parquet
-- **Output**: `dbfs:/pitwall/clean/` (Silver Delta)
+- **Output**: `/Volumes/workspace/default/pitwall/clean/` (Silver Delta)
 - **Key steps**:
   - Drop rows with nulls in critical columns (LapTime, Driver, Team)
   - Filter laps > 107% of session best (F1 qualifying rule — removes unrepresentative laps)
@@ -24,7 +24,7 @@
 
 ## Phase 3 — Feature Engineering (`03_features.py`)
 - **Input**: Silver Delta
-- **Output**: `dbfs:/pitwall/features/` (Gold Delta)
+- **Output**: `/Volumes/workspace/default/pitwall/features/` (Gold Delta)
 - **Structure**: One row per driver per lap — full lap granularity preserved. Features are lap-level metrics. Dual weights applied at training time, not here.
 - **Features engineered**:
   - `lap_time_delta` — delta to session best lap (seconds)
@@ -44,16 +44,16 @@
 
 ## Phase 5 — Training (`05_train.py`)
 - **Input**: Gold Delta + race results as labels
-- **Output**: `dbfs:/pitwall/models/base_r{N}/` or `qualifying_r{N}/`
+- **Output**: `/Volumes/workspace/default/pitwall/models/base_r{N}/` or `qualifying_r{N}/`
 - **Steps**:
   - Compute `sample_weight` via `utils/weights.py` (recency × session_type)
   - Build MLlib Pipeline: VectorAssembler → StringIndexer → GBTClassifier(weightCol="sample_weight")
   - Train/validation split
-  - Save versioned Pipeline to DBFS
+  - Save versioned Pipeline to Volumes
 
 ## Phase 6 — Prediction + Export (`06_predict.py`)
 - **Input**: Trained model + Gold features for current weekend
-- **Output**: `dbfs:/pitwall/predictions/` + `dashboard/public/predictions.json`
+- **Output**: `/Volumes/workspace/default/pitwall/predictions/` + `dashboard/public/predictions.json`
 - **Steps**:
   - Load versioned model (base or qualifying)
   - `.transform()` → extract `probability[1]` as win confidence

@@ -20,8 +20,8 @@ pitwall/
 │   └── weights.py                     # Recency decay + session type weight computation
 │
 ├── dashboard/                         # Next.js app
-│   ├── pages/
-│   │   └── index.js                   # Main dashboard page
+│   ├── app/
+│   │   └── page.js                    # Main dashboard page
 │   ├── components/                    # React components (charts, driver cards, etc.)
 │   ├── public/
 │   │   └── predictions.json           # ← pipeline writes here, Vercel reads this
@@ -35,6 +35,5 @@ pitwall/
 ## Key conventions
 - Never use `spark.read.csv(..., inferSchema=True)` — always define schema in `utils/schema.py`
 - All notebooks are independently runnable — no hidden state dependencies between them
-- `run_pipeline.py` uses `%run notebooks/01_ingest` etc. to chain them
-- Model paths always include version: `dbfs:/pitwall/models/base_r05/`
+- Model paths always include version: `/Volumes/workspace/default/pitwall/models/base_r05/`
 - `predictions.json` is the single handoff point between Databricks and the dashboard

@@ -7,12 +7,12 @@
 
 ## DBFS storage layout
 ```
-dbfs:/pitwall/raw/season=…/event=…/session=…/   ← Bronze Parquet
-dbfs:/pitwall/clean/                              ← Silver Delta
-dbfs:/pitwall/features/                           ← Gold Delta
-dbfs:/pitwall/models/base_r{N}/                  ← trained MLlib Pipeline
-dbfs:/pitwall/models/qualifying_r{N}/            ← mid-weekend model
-dbfs:/pitwall/predictions/                        ← output tables
+/Volumes/workspace/default/pitwall/raw/season=…/event=…/session=…/   ← Bronze Parquet
+/Volumes/workspace/default/pitwall/clean/                              ← Silver Delta
+/Volumes/workspace/default/pitwall/features/                           ← Gold Delta
+/Volumes/workspace/default/pitwall/models/base_r{N}/                  ← trained MLlib Pipeline
+/Volumes/workspace/default/pitwall/models/qualifying_r{N}/            ← mid-weekend model
+/Volumes/workspace/default/pitwall/predictions/                        ← output tables
 ```
 
 ## Training data structure

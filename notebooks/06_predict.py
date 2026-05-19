@@ -233,6 +233,58 @@ driver_session_map = defaultdict(dict)
 for row in session_scores_raw:
     driver_session_map[row["driver"]][row["session_type"]] = row["avg_delta"]
 
+#  PACE TREND PER DRIVER
+
+# pace_trend = recent 2 rounds avg delta minus previous 4 rounds avg delta.
+# Negative = driver is improving (getting closer to session best).
+# Positive = driver is declining.
+# Null = not enough rounds yet (< 3 rounds of data).
+#
+# We take the mean pace_trend across all Race session rows for this driver
+# this weekend. Since pace_trend is a cross-round feature it's the same
+# value on every row for a given driver — avg is just a safe aggregation.
+#
+# Thresholds for label:
+#   trend < -0.15  → "up"    (meaningfully improving)
+#   trend > +0.15  → "down"  (meaningfully declining)
+#   otherwise      → "flat"  (no clear trend or insufficient data)
+
+TREND_THRESHOLD = 0.15
+
+trend_raw = (
+    predictions_raw
+    .filter(F.col("session_type") == "R")
+    .groupBy("driver")
+    .agg(F.avg("pace_trend").alias("avg_pace_trend"))
+    .collect()
+)
+
+# Fall back to all sessions if no Race rows yet (mid-weekend)
+if not trend_raw:
+    trend_raw = (
+        predictions_raw
+        .groupBy("driver")
+        .agg(F.avg("pace_trend").alias("avg_pace_trend"))
+        .collect()
+    )
+
+def trend_label(val):
+    if val is None:
+        return "flat"
+    if val < -TREND_THRESHOLD:
+        return "up"
+    if val > TREND_THRESHOLD:
+        return "down"
+    return "flat"
+
+trend_map = {
+    row["driver"]: {
+        "label": trend_label(row["avg_pace_trend"]),
+        "value": round(float(row["avg_pace_trend"]), 4) if row["avg_pace_trend"] is not None else None,
+    }
+    for row in trend_raw
+}
+
 #  FEATURE IMPORTANCE 
 
 FEATURE_COLS = [
@@ -352,7 +404,7 @@ payload = {
             "predicted_position": row["predicted_position"],
             "win_probability":    round(float(row["win_probability"]), 4),
             "uncertainty":        round(float(row["uncertainty"]), 4),
-            "trend":              "flat",   # placeholder 
+            "trend":              trend_map.get(row["driver"], {"label": "flat", "value": None}),
             "sessions": {
                 s: (
                     {

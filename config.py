@@ -1,6 +1,6 @@
 SEASON = 2026
-EVENT = "Chinese Grand Prix"   
-ROUND_NUMBER = 2
+EVENT = "Canadian Grand Prix"
+ROUND_NUMBER = 5
 
 SESSION_TYPES = ["FP1", "FP2", "FP3", "Q", "SQ", "S", "R"]
 
@@ -25,3 +25,23 @@ SESSION_WEIGHTS = {
     "FP2": 0.25,
     "FP1": 0.15,
 }
+
+# Telemetry paths
+TELEMETRY_RAW_PATH   = f"{BASE_PATH}/telemetry/raw"
+TELEMETRY_CLEAN_PATH = f"{BASE_PATH}/telemetry/clean"
+
+# Seasons to backfill during initial historical ingestion
+TEL_SEASONS = [2024, 2025]
+
+# MAE encoder hyperparameters — shared between 09, 10, and 11 so they stay in sync.
+# If you change any of these, delete the checkpoint and retrain from scratch.
+ENCODER_HPARAMS = dict(
+    d_model         = 384,
+    n_heads         = 6,
+    encoder_layers  = 6,
+    decoder_d_model = 192,
+    decoder_n_heads = 4,
+    decoder_layers  = 2,
+    patch_stride    = 16,
+    mask_ratio      = 0.75,
+)

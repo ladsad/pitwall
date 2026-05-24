@@ -1,8 +1,23 @@
+"""
+06_predict.py — RF/GBT Prediction (Active Baseline)
+─────────────────────────────────────────────────────
+Generates race predictions using the trained RF/GBT ensemble on Gold tabular
+features. Writes predictions.json for the dashboard.
+
+STATUS: Active pipeline for today's Canadian GP (Round 5, 2026).
+        Once 09_mae_pretrain.py + 10_mae_finetune.py are complete,
+        11_mae_predict.py becomes the primary prediction notebook and
+        this becomes a comparison baseline.
+
+Run order for predictions:
+  01_ingest.py → 02_clean.py → 03_features.py → 05_train.py → 06_predict.py (this)
+"""
 import os
 import pathlib
 import sys
 import json
 from datetime import datetime, timezone
+
 
 try:
     PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent

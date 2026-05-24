@@ -1,3 +1,15 @@
+"""
+05_train.py — RF/GBT Comparison Baseline
+──────────────────────────────────────────
+Trains a Gradient Boosted Trees + Random Forest ensemble on Gold tabular features.
+
+This notebook is retained as a comparison baseline for benchmarking against the
+MAE deep learning pipeline (09_mae_pretrain.py + 10_mae_finetune.py).
+
+For the primary training pipeline, use:
+  09_mae_pretrain.py  — self-supervised pre-training on raw telemetry
+  10_mae_finetune.py  — fine-tuning for race position prediction
+"""
 import os
 import pathlib
 import sys

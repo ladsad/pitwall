@@ -64,6 +64,7 @@ try:
             "mae_pretrain",
             "mae_finetune",
             "full_mae",
+            "dev_eda",
         ],
         "Select Pipeline",
     )
@@ -111,6 +112,12 @@ PIPELINE_STEPS = {
         ("notebooks/09_mae_pretrain", 7100, "MAE self-supervised pre-training"),
         ("notebooks/10_mae_finetune", 7100, "Fine-tune encoder for position prediction"),
     ],
+    "dev_eda": [
+        ("notebooks/01_ingest",       1800, "Ingest lap data from FastF1"),
+        ("notebooks/02_clean",         600, "Clean Bronze → Silver Delta"),
+        ("notebooks/03_features",      600, "Engineer features → Gold Delta"),
+        ("notebooks/04_eda",          1200, "EDA + correlation analysis (dev only)"),
+    ],
 }
 
 if PIPELINE not in PIPELINE_STEPS:
@@ -125,7 +132,7 @@ steps = PIPELINE_STEPS[PIPELINE]
 # dbutils.notebook.run() needs absolute Workspace paths.
 # When running via Repos the root is /Workspace/Repos/<repo-name>.
 
-WORKSPACE_ROOT = "/Workspace/Repos/pitwall"
+WORKSPACE_ROOT = os.environ.get("DATABRICKS_WORKSPACE_ROOT", "/Workspace/Repos/pitwall")
 
 # ── DISPLAY PLAN ──────────────────────────────────────────────────────────────
 

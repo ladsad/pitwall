@@ -11,7 +11,8 @@ RESULTS_PATH = f"{BASE_PATH}/raw/results"
 CLEAN_PATH = f"{BASE_PATH}/clean"
 FEATURES_PATH = f"{BASE_PATH}/features"
 MODELS_PATH = f"{BASE_PATH}/models"
-PREDICTIONS_PATH = f"{BASE_PATH}/predictions"
+PREDICTIONS_PATH   = f"{BASE_PATH}/predictions"
+DASHBOARD_JSON_PATH = f"{BASE_PATH}/dashboard/public/predictions.json"
 
 # ML weighting
 RECENCY_LAMBDA = 0.15

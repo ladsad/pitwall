@@ -1,21 +1,18 @@
 """
-11_mae_predict.py
-──────────────────
-PRIMARY PREDICTION NOTEBOOK — supersedes 06_predict.py.
-
+11_mae_predict.py — PRIMARY PREDICTION NOTEBOOK
+─────────────────────────────────────────────────
 Runs the fine-tuned F1MAE encoder on the current race weekend's telemetry,
 writes predictions to the shared PREDICTIONS_PATH Delta table (model_version='mae'),
 and exports predictions.json for the dashboard.
 
-Prerequisites (run in order each race weekend):
-  01_ingest.py → 02_clean.py → 03_features.py   (Gold Delta — needed for labels)
+Prerequisites (per race weekend):
+  01_ingest.py → 02_clean.py → 03_features.py   (Gold Delta — for labels)
   07_tel_ingest.py → 08_tel_preprocess.py        (Silver telemetry)
-  [09_mae_pretrain.py + 10_mae_finetune.py done once historically]
+  [09_mae_pretrain.py + 10_mae_finetune.py — one-time historical training]
 
-06_predict.py remains available as an RF/GBT comparison baseline.
+06_predict.py remains available as RF/GBT comparison baseline.
 """
 
-import json
 import os
 import pathlib
 import sys
@@ -35,23 +32,23 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from utils.spark_session import get_spark_session
 from utils.mae_model import F1MAE, F1PositionHead
-from utils.tel_dataset import F1TelemetryDataset
 from utils.tel_schema import TEL_SILVER_SCHEMA
+from utils.predict_utils import (
+    season_history,
+    build_payload,
+    write_dashboard_json,
+)
 from config import (
     SEASON, EVENT, ROUND_NUMBER,
-    TELEMETRY_CLEAN_PATH, BASE_PATH, PREDICTIONS_PATH,
-    ENCODER_HPARAMS  # added to config.py alongside other ML settings
+    BASE_PATH, TELEMETRY_CLEAN_PATH, PREDICTIONS_PATH, FEATURES_PATH,
+    DASHBOARD_JSON_PATH,
+    ENCODER_HPARAMS,
 )
 
 spark = get_spark_session("pitwall-mae-predict")
 
-# ── PATHS ─────────────────────────────────────────────────────────────────────
-
 SILVER_PATH     = f"{TELEMETRY_CLEAN_PATH}/silver"
 FINETUNED_MODEL = f"{BASE_PATH}/models/mae_finetuned.pt"
-MAE_PRED_PATH   = f"{PREDICTIONS_PATH}/season={SEASON}/event={EVENT}/model=mae"
-
-# ── DEVICE ────────────────────────────────────────────────────────────────────
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Device: {device}")
@@ -67,9 +64,7 @@ if not os.path.exists(FINETUNED_MODEL):
         f"  Fine-tuned model not found at:\n    {FINETUNED_MODEL}\n\n"
         "  The MAE pipeline requires ~20–45 hours of compute on CE\n"
         "  before it can generate predictions.\n\n"
-        "  ► FOR TODAY'S RACE: run 06_predict.py (RF/GBT baseline)\n"
-        "    It uses the existing Gold features and produces the same\n"
-        "    predictions.json output for the dashboard.\n\n"
+        "  ► FOR TODAY'S RACE: run 06_predict.py (RF/GBT baseline)\n\n"
         "  ► TO ENABLE MAE FOR FUTURE RACES, run in order on CE:\n"
         "    1. 07_tel_ingest.py     (~6–10 hrs, restartable)\n"
         "    2. 08_tel_preprocess.py (~1–2 hrs)\n"
@@ -78,15 +73,9 @@ if not os.path.exists(FINETUNED_MODEL):
         "    Then re-run this notebook for the next race weekend.\n"
         + "=" * 65
     )
-    # Exit cleanly — do not crash the Databricks job
-    import sys
     sys.exit(0)
 
-
-# Reconstruct model architecture then load weights
-# (ENCODER_HPARAMS must match those used in 09/10 — stored in config.py)
 mae_backbone = F1MAE(**ENCODER_HPARAMS)
-
 model = F1PositionHead(
     encoder   = mae_backbone.encoder,
     d_model   = ENCODER_HPARAMS["d_model"],
@@ -95,12 +84,9 @@ model = F1PositionHead(
 
 model.load_state_dict(torch.load(FINETUNED_MODEL, map_location=device))
 model.eval()
-
 print(f"Model loaded from: {FINETUNED_MODEL}")
 
-# ── LOAD SILVER FOR CURRENT RACE WEEKEND ──────────────────────────────────────
-# We reuse 08_tel_preprocess.py's output. If it hasn't run yet for the current
-# season, the user should run it first (same as the existing 01→06 cadence).
+# ── LOAD SILVER TELEMETRY ─────────────────────────────────────────────────────
 
 print(f"\nLoading Silver telemetry for {EVENT} {SEASON}...")
 
@@ -125,24 +111,17 @@ except Exception as e:
 if row_count == 0:
     raise ValueError(f"Silver telemetry is empty for {EVENT} {SEASON}.")
 
-# ── COLLECT SILVER TO DRIVER TENSORS ─────────────────────────────────────────
-# We aggregate to one prediction per driver (same as RF/LR pipeline convention).
-# Strategy: take the lap with the lowest lap_time_delta proxy — the driver's
-# representative best-pace lap — and predict position from that lap's telemetry.
-# This mirrors how the existing Gold feature store picks best-lap metrics.
+sessions_used = silver_sdf.select("session_type").distinct().rdd.flatMap(lambda r: r).collect()
+
+# ── COLLECT DRIVER TENSORS ────────────────────────────────────────────────────
 
 silver_pdf = silver_sdf.toPandas()
 silver_pdf["channels"] = silver_pdf["channels"].apply(
     lambda ch: np.array(ch, dtype=np.float32)  # (6, 1024)
 )
 
-# Group by driver, pick best lap (min lap_number as proxy for quicklap ordering)
-driver_groups = silver_pdf.groupby("driver")
-
-driver_tensors = {}   # {driver: (6, 1024) tensor}
-for driver, group in driver_groups:
-    # Sort by lap_number ascending — pick the lap FastF1 returned first
-    # (pick_quicklaps already sorted by pace quality in 07_tel_ingest.py)
+driver_tensors = {}
+for driver, group in silver_pdf.groupby("driver"):
     best_row = group.sort_values("lap_number").iloc[0]
     arr = best_row["channels"]
     if arr.shape == (6, 1024):
@@ -150,100 +129,70 @@ for driver, group in driver_groups:
 
 print(f"\nDrivers with valid telemetry: {len(driver_tensors)}")
 
-# ── RUN INFERENCE ─────────────────────────────────────────────────────────────
+# ── INFERENCE ─────────────────────────────────────────────────────────────────
 
 results = []
 
 with torch.no_grad():
     for driver, tensor in driver_tensors.items():
-        x = tensor.unsqueeze(0).to(device)            # (1, 6, 1024)
-        logits = model(x)                             # (1, 20)
-        probs  = torch.softmax(logits, dim=1).squeeze(0).cpu().numpy()   # (20,)
+        x      = tensor.unsqueeze(0).to(device)                          # (1, 6, 1024)
+        logits = model(x)                                                  # (1, 20)
+        probs  = torch.softmax(logits, dim=1).squeeze(0).cpu().numpy()    # (20,)
 
-        # Predicted position: argmax of softmax → 0-indexed class → 1-indexed position
-        pred_class    = int(np.argmax(probs))
-        pred_position = pred_class + 1
-
-        # Win probability: prob of class 0 (position 1)
-        win_prob = float(probs[0])
-
-        # Confidence: entropy-based — low entropy = model is more certain
-        entropy = float(-np.sum(probs * np.log(probs + 1e-9)))
-        # Normalise entropy to [0, 1] where 0 = perfectly certain
-        max_entropy = np.log(20)
-        uncertainty = float(entropy / max_entropy)
+        pred_position = int(np.argmax(probs)) + 1
+        win_prob      = float(probs[0])
+        entropy       = float(-np.sum(probs * np.log(probs + 1e-9)))
+        uncertainty   = float(entropy / np.log(20))
 
         results.append({
             "driver":             driver,
             "predicted_position": pred_position,
             "win_probability":    win_prob,
             "uncertainty":        uncertainty,
-            "raw_probs":          probs.tolist(),
         })
 
-# Sort by win probability descending — rerank positions accordingly
 results.sort(key=lambda r: r["win_probability"], reverse=True)
 for rank, r in enumerate(results, start=1):
-    r["predicted_position"] = rank   # rerank to avoid ties
+    r["predicted_position"] = rank
 
-print("\nMAE Predictions:")
-print(f"  {'Driver':<6} {'Pred Pos':>8} {'Win Prob':>10} {'Uncertainty':>13}")
+print(f"\n  {'Driver':<6} {'Pred Pos':>8} {'Win Prob':>10} {'Uncertainty':>13}")
 print(f"  {'─'*6} {'─'*8} {'─'*10} {'─'*13}")
 for r in results:
-    print(
-        f"  {r['driver']:<6} "
-        f"{r['predicted_position']:>8} "
-        f"{r['win_probability']:>10.4f} "
-        f"{r['uncertainty']:>13.4f}"
-    )
+    print(f"  {r['driver']:<6} {r['predicted_position']:>8} {r['win_probability']:>10.4f} {r['uncertainty']:>13.4f}")
 
-# ── WRITE PREDICTIONS PARQUET ─────────────────────────────────────────────────
-
-output_schema = """
-    driver string, team string, event string, round int, season int,
-    model_version string, predicted_position int,
-    win_probability float, uncertainty float
-"""
+# ── WRITE PREDICTIONS DELTA ───────────────────────────────────────────────────
 
 pred_sdf = spark.createDataFrame(
     [
         (
-            r["driver"],
-            "MAE",       # no team info at telemetry level — placeholder
-            EVENT,
-            ROUND_NUMBER,
-            SEASON,
-            "mae",
-            r["predicted_position"],
-            r["win_probability"],
-            r["uncertainty"],
+            r["driver"], "MAE", EVENT, ROUND_NUMBER, SEASON,
+            "mae", r["predicted_position"],
+            r["win_probability"], r["uncertainty"],
         )
         for r in results
     ],
-    schema=output_schema.strip(),
+    schema=(
+        "driver string, team string, event string, round int, season int, "
+        "model_version string, predicted_position int, "
+        "win_probability float, uncertainty float"
+    ),
 )
 
 (
     pred_sdf.write
     .format("delta")
     .mode("overwrite")
-    .option(
-        "replaceWhere",
-        f"season = {SEASON} AND event = '{EVENT}' AND model_version = 'mae'"
-    )
+    .option("replaceWhere", f"season = {SEASON} AND event = '{EVENT}' AND model_version = 'mae'")
     .save(PREDICTIONS_PATH)
 )
 
 print(f"\nMAE predictions written to: {PREDICTIONS_PATH} (model_version='mae')")
 
-# ── COMPARISON WITH EXISTING RF/LR PIPELINE ───────────────────────────────────
-# Load the RF predictions for the same event and compare top-3 accuracy if
-# race results are available (base_r{N} model exists post-race).
+# ── COMPARISON WITH RF/GBT ────────────────────────────────────────────────────
 
-print(f"\n── Comparison: MAE vs RF/LR (if post-race results available) ──────────")
+print("\n── Comparison: MAE vs RF/GBT (if post-race results available) ──────────")
 
 try:
-    rf_pred_path = f"{PREDICTIONS_PATH}"
     rf_preds_sdf = (
         spark.read.format("delta").load(PREDICTIONS_PATH)
              .filter(
@@ -259,8 +208,6 @@ try:
     if rf_preds_sdf.count() == 0:
         print("  No post-race RF predictions found (race may not have completed yet).")
     else:
-        # Load actual results from Gold
-        from config import FEATURES_PATH
         actuals_sdf = (
             spark.read.format("delta").load(FEATURES_PATH)
                  .filter(
@@ -273,150 +220,68 @@ try:
         )
 
         if actuals_sdf.count() == 0:
-            print("  Actual race results not available yet — run pipeline after the race.")
+            print("  Actual race results not available yet.")
         else:
-            # Build comparison table
-            mae_spark = spark.createDataFrame(
+            mae_spark  = spark.createDataFrame(
                 [(r["driver"], r["predicted_position"]) for r in results],
-                ["driver", "mae_pred_pos"]
+                ["driver", "mae_pred_pos"],
             )
-
-            comparison = (
-                actuals_sdf
-                .join(mae_spark,   on="driver", how="left")
-                .join(rf_preds_sdf, on="driver", how="left")
-            )
-
-            total = comparison.count()
+            comparison = actuals_sdf.join(mae_spark, on="driver", how="left").join(rf_preds_sdf, on="driver", how="left")
+            total      = comparison.count()
 
             mae_exact = comparison.filter(F.col("mae_pred_pos") == F.col("race_position")).count()
             rf_exact  = comparison.filter(F.col("rf_pred_pos")  == F.col("race_position")).count()
-
-            mae_top3  = comparison.filter(
-                F.abs(F.col("mae_pred_pos") - F.col("race_position")) <= 2
-            ).count()
-            rf_top3   = comparison.filter(
-                F.abs(F.col("rf_pred_pos") - F.col("race_position")) <= 2
-            ).count()
+            mae_top3  = comparison.filter(F.abs(F.col("mae_pred_pos") - F.col("race_position")) <= 2).count()
+            rf_top3   = comparison.filter(F.abs(F.col("rf_pred_pos")  - F.col("race_position")) <= 2).count()
 
             print(f"\n  {'Metric':<20} {'MAE Model':>12} {'RF Model':>12}")
             print(f"  {'─'*20} {'─'*12} {'─'*12}")
             print(f"  {'Exact accuracy':<20} {mae_exact/total:>12.3f} {rf_exact/total:>12.3f}")
             print(f"  {'Top-3 accuracy':<20} {mae_top3/total:>12.3f} {rf_top3/total:>12.3f}")
             print(f"  {'(drivers evaluated)':<20} {total:>12}")
-
-            print("\n  Per-driver comparison:")
-            comparison.select(
-                "driver", "race_position", "mae_pred_pos", "rf_pred_pos"
-            ).orderBy("race_position").show(25)
+            comparison.select("driver", "race_position", "mae_pred_pos", "rf_pred_pos").orderBy("race_position").show(25)
 
 except Exception as e:
-    print(f"  Comparison skipped — RF predictions not available: {e}")
+    print(f"  Comparison skipped: {e}")
 
-# ── HISTORICAL ACCURACY (MAE, season so far) ──────────────────────────────────
-# Reads from the shared PREDICTIONS_PATH Delta table filtering model_version='mae'
-# and post-race Gold results. Same logic as 06_predict.py.
-
-print(f"\n── Historical MAE accuracy (season so far) ──────────────────────────────")
+# ── HISTORICAL ACCURACY ───────────────────────────────────────────────────────
 
 try:
-    from config import FEATURES_PATH
-
-    history_df = (
-        spark.read.format("delta").load(PREDICTIONS_PATH)
-             .filter(
-                 (F.col("season") == SEASON)
-                 & (F.col("model_version") == "mae")
-                 & (F.col("predicted_position") == 1)
-             )
-             .select("event", "driver", "round")
-             .withColumnRenamed("driver", "predicted")
+    history, season_acc = season_history(
+        spark, PREDICTIONS_PATH, FEATURES_PATH,
+        season=SEASON,
+        model_version_filter=F.col("model_version") == "mae",
     )
-
-    actuals_df = (
-        spark.read.format("delta").load(FEATURES_PATH)
-             .filter(
-                 (F.col("season") == SEASON)
-                 & (F.col("session_type") == "R")
-                 & (F.col("race_position") == 1)
-             )
-             .select("event", "driver")
-             .distinct()
-             .withColumnRenamed("driver", "actual")
-    )
-
-    history_rows = (
-        history_df
-        .join(actuals_df, on="event", how="inner")
-        .withColumn("top3_hit", F.col("predicted") == F.col("actual"))
-        .orderBy("round")
-        .select("event", "predicted", "actual", "top3_hit")
-        .collect()
-    )
-
-    history = [
-        {
-            "event":     row["event"],
-            "predicted": row["predicted"],
-            "actual":    row["actual"],
-            "top3_hit":  bool(row["top3_hit"]),
-        }
-        for row in history_rows
-    ]
-
-    season_hits     = sum(1 for h in history if h["top3_hit"])
-    season_accuracy = round(season_hits / len(history), 4) if history else 0.0
-    print(f"  MAE winner accuracy this season: {season_hits}/{len(history)} ({season_accuracy:.1%})")
-
+    print(f"\nMAE winner accuracy this season: {sum(1 for h in history if h['top3_hit'])}/{len(history)} ({season_acc:.1%})")
 except Exception as e:
     print(f"  Historical accuracy skipped: {e}")
-    history         = []
-    season_accuracy = 0.0
+    history, season_acc = [], 0.0
 
-# ── EXPORT predictions.json FOR DASHBOARD ─────────────────────────────────────
-# Schema-compatible with 06_predict.py so the dashboard works unchanged.
-# This is now the primary predictions.json — 06_predict.py is a comparison baseline.
+# ── EXPORT predictions.json ───────────────────────────────────────────────────
 
-payload = {
-    "model_version":   "mae",
-    "generated_at":    datetime.now(timezone.utc).isoformat(),
-    "event":           EVENT,
-    "round":           ROUND_NUMBER,
-    "season":          SEASON,
-    "sessions_used":   list(
-        {row["session_type"] for row in silver_pdf["session_type"].items()}
-        if "session_type" in silver_pdf.columns
-        else ["R"]
-    ),
-    "season_accuracy": {
-        "top3_pct": season_accuracy,
-        "races":    len(history),
-    },
-    "recency_lambda": None,   # not applicable for MAE
-    "predictions": [
+payload = build_payload(
+    model_version="mae",
+    event=EVENT,
+    round_number=ROUND_NUMBER,
+    season=SEASON,
+    sessions_used=sessions_used,
+    season_accuracy=(season_acc, len(history)),
+    recency_lambda=None,
+    predictions=[
         {
             "driver":             r["driver"],
-            "team":               None,     # not available from telemetry alone
+            "team":               None,
             "predicted_position": r["predicted_position"],
             "win_probability":    round(r["win_probability"], 4),
             "uncertainty":        round(r["uncertainty"], 4),
-            "trend":              {"label": "flat", "value": None},  # pace trend N/A for MAE
+            "trend":              {"label": "flat", "value": None},
             "sessions":           {},
         }
         for r in results
     ],
-    "feature_importance": [],  # not applicable for MAE
-    "history":            history,
-}
+    feature_importance=[],
+    history=history,
+)
 
-dashboard_json_path = BASE_PATH + "/dashboard/public/predictions.json"
-try:
-    dbutils.fs.put(dashboard_json_path, json.dumps(payload, indent=2), overwrite=True)
-    print(f"\npredictions.json written to: {dashboard_json_path}")
-    print(f"Next step: git add dashboard/public/predictions.json && git push")
-    print(f"Vercel will redeploy automatically within ~30 seconds.")
-except Exception as e:
-    print(f"\nCould not write predictions.json (dbutils not available outside CE): {e}")
-
+write_dashboard_json(payload, DASHBOARD_JSON_PATH)
 print(f"\nDone. MAE predictions for {EVENT} {SEASON} | Drivers: {len(results)}")
-

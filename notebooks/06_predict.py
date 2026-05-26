@@ -1,23 +1,20 @@
 """
-06_predict.py — RF/GBT Prediction (Active Baseline)
-─────────────────────────────────────────────────────
+06_predict.py — RF/GBT Prediction (Baseline)
+──────────────────────────────────────────────
 Generates race predictions using the trained RF/GBT ensemble on Gold tabular
 features. Writes predictions.json for the dashboard.
 
-STATUS: Active pipeline for today's Canadian GP (Round 5, 2026).
-        Once 09_mae_pretrain.py + 10_mae_finetune.py are complete,
-        11_mae_predict.py becomes the primary prediction notebook and
-        this becomes a comparison baseline.
+  - When MAE model (mae_finetuned.pt) is trained: use 11_mae_predict.py instead.
+  - This notebook remains as the RF/GBT comparison baseline.
 
-Run order for predictions:
-  01_ingest.py → 02_clean.py → 03_features.py → 05_train.py → 06_predict.py (this)
+Run order:
+  01_ingest.py → 02_clean.py → 03_features.py → 05_train.py → 06_predict.py
 """
+
 import os
 import pathlib
 import sys
-import json
 from datetime import datetime, timezone
-
 
 try:
     PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -31,23 +28,36 @@ from pyspark.sql import functions as F
 from pyspark.ml import PipelineModel
 
 from utils.spark_session import get_spark_session
+from utils.predict_utils import (
+    session_scores,
+    trend_map,
+    bootstrap_uncertainty,
+    season_history,
+    build_payload,
+    write_dashboard_json,
+)
 from config import (
     SEASON, EVENT, ROUND_NUMBER,
     BASE_PATH, FEATURES_PATH, MODELS_PATH, PREDICTIONS_PATH,
+    DASHBOARD_JSON_PATH,
+    SESSION_TYPES, SESSION_WEIGHTS,
+    RECENCY_LAMBDA,
 )
 
 spark = get_spark_session("pitwall-predict")
 
-#  LOAD MODEL 
+# ── LOAD MODEL ────────────────────────────────────────────────────────────────
 
 qualifying_path = f"{MODELS_PATH}/qualifying_r{ROUND_NUMBER:02d}"
 base_path       = f"{MODELS_PATH}/base_r{ROUND_NUMBER:02d}"
 
+
 def path_exists(path: str) -> bool:
     try:
-        return len(dbutils.fs.ls(path)) > 0
+        return len(dbutils.fs.ls(path)) > 0  # noqa: F821
     except Exception:
         return os.path.exists(path)
+
 
 if path_exists(qualifying_path):
     model_path    = qualifying_path
@@ -66,7 +76,7 @@ print(f"Model     : {model_version} ({model_path})")
 
 model = PipelineModel.load(model_path)
 
-#  LOAD FEATURES FOR CURRENT WEEKEND 
+# ── LOAD FEATURES FOR CURRENT WEEKEND ────────────────────────────────────────
 
 predict_df = (
     spark.read.format("delta").load(FEATURES_PATH)
@@ -83,7 +93,7 @@ predict_df.groupBy("session_type").count().orderBy("session_type").show()
 if row_count == 0:
     raise ValueError(f"No Gold features found for {EVENT}. Run 03_features.py first.")
 
-#  APPLY SAME NaN / NULL HANDLING AS TRAINING 
+# ── NaN / NULL HANDLING (matches training) ────────────────────────────────────
 
 NUMERIC_COLS = [
     "lap_time_delta",
@@ -100,56 +110,47 @@ for _col in NUMERIC_COLS:
         F.when(F.isnan(F.col(_col)), F.lit(0.0)).otherwise(F.col(_col)),
     )
 predict_df = predict_df.fillna(0.0, subset=NUMERIC_COLS)
-
-# race_position may be null mid-weekend — StringIndexer handleInvalid="keep" covers this
-# but we need a placeholder so the label stage doesn't error on a completely missing column.
 predict_df = predict_df.fillna(-1, subset=["race_position"])
 
-#  RUN MODEL 
+# ── RUN MODEL ─────────────────────────────────────────────────────────────────
 
 predictions_raw = model.transform(predict_df)
 
-#  MAP LABEL INDEX → FINISHING POSITION 
+# ── MAP LABEL INDEX → FINISHING POSITION ─────────────────────────────────────
 
 label_indexer_model = model.stages[1]
-labels = label_indexer_model.labels   # e.g. ["1", "2", "3", ...]
+labels = label_indexer_model.labels
 
-# Build index → position mapping
 index_to_position = {float(i): int(labels[i]) for i in range(len(labels))}
 
-# Find which probability vector slot corresponds to position 1 (the win)
-win_index = None
-for idx, pos in index_to_position.items():
-    if pos == 1:
-        win_index = int(idx)
-        break
-
+win_index = next(
+    (int(idx) for idx, pos in index_to_position.items() if pos == 1),
+    None,
+)
 if win_index is None:
-    # Position 1 not seen in training data — use index 0 as fallback with a warning
     print("WARNING: Position 1 not found in label index. Using index 0 as win proxy.")
     win_index = 0
 
 print(f"\nLabel index mapping (first 5): { {k: v for k, v in list(index_to_position.items())[:5]} }")
 print(f"Win probability vector slot  : index {win_index}")
 
-#  EXTRACT WIN PROBABILITY PER DRIVER 
+# ── EXTRACT WIN PROBABILITY PER DRIVER ───────────────────────────────────────
 
 extract_win_prob = F.udf(lambda v: float(v[win_index]))
 extract_pred_pos = F.udf(lambda idx: index_to_position.get(float(idx), -1))
 
 predictions_raw = (
     predictions_raw
-    .withColumn("win_prob_lap",   extract_win_prob(F.col("probability")).cast("float"))
-    .withColumn("pred_pos_lap",   extract_pred_pos(F.col("prediction")).cast("integer"))
+    .withColumn("win_prob_lap", extract_win_prob(F.col("probability")).cast("float"))
+    .withColumn("pred_pos_lap", extract_pred_pos(F.col("prediction")).cast("integer"))
 )
 
-# Aggregate to one row per driver — max win probability across all laps/sessions
 driver_preds = (
     predictions_raw
     .groupBy("driver", "team")
     .agg(
         F.max("win_prob_lap").alias("win_probability"),
-        F.first("pred_pos_lap").alias("predicted_position"),   # most common predicted pos
+        F.first("pred_pos_lap").alias("predicted_position"),
         F.count("*").alias("lap_count"),
     )
     .orderBy(F.desc("win_probability"))
@@ -158,149 +159,49 @@ driver_preds = (
 print("\nDriver win probabilities (pre-normalisation):")
 driver_preds.select("driver", "team", "win_probability", "predicted_position").show(25)
 
-#  NORMALISE WIN PROBABILITIES 
+# ── NORMALISE WIN PROBABILITIES ───────────────────────────────────────────────
 
 total_prob = driver_preds.agg(F.sum("win_probability")).collect()[0][0]
 driver_preds = driver_preds.withColumn(
     "win_probability",
-    (F.col("win_probability") / F.lit(total_prob)).cast("float")
+    (F.col("win_probability") / F.lit(total_prob)).cast("float"),
 )
 
-#  BOOTSTRAP UNCERTAINTY 
+# ── BOOTSTRAP UNCERTAINTY ─────────────────────────────────────────────────────
 
-N_BOOTSTRAP = 20
-RESAMPLE_FRACTION = 0.8
-
-print(f"\nBootstrap uncertainty estimation (N={N_BOOTSTRAP} resamples)...")
-
-driver_list = [row["driver"] for row in driver_preds.select("driver").collect()]
-bootstrap_probs = {d: [] for d in driver_list}
-
-for i in range(N_BOOTSTRAP):
-    sample = predictions_raw.sample(fraction=RESAMPLE_FRACTION, seed=i)
-    if sample.count() == 0:
-        continue
-
-    sample_agg = (
-        sample
-        .groupBy("driver")
-        .agg(F.max("win_prob_lap").alias("win_prob"))
-    )
-
-    sample_total = sample_agg.agg(F.sum("win_prob")).collect()[0][0]
-    if not sample_total or sample_total == 0:
-        continue
-
-    sample_norm = sample_agg.withColumn(
-        "win_prob_norm", (F.col("win_prob") / F.lit(sample_total)).cast("float")
-    )
-
-    for row in sample_norm.collect():
-        if row["driver"] in bootstrap_probs:
-            bootstrap_probs[row["driver"]].append(row["win_prob_norm"])
-
-# Compute std dev across bootstrap samples per driver
-import statistics
-uncertainty_map = {}
-for driver, probs in bootstrap_probs.items():
-    if len(probs) >= 2:
-        uncertainty_map[driver] = round(statistics.stdev(probs), 4)
-    else:
-        uncertainty_map[driver] = 0.0
-
+print(f"\nBootstrap uncertainty estimation (N=20 resamples)...")
+driver_list    = [row["driver"] for row in driver_preds.select("driver").collect()]
+uncertainty_map = bootstrap_uncertainty(predictions_raw, driver_list)
 print("Bootstrap complete.")
 
-#  ASSEMBLE FINAL PREDICTIONS 
+# ── ASSEMBLE FINAL PREDICTIONS ────────────────────────────────────────────────
+
+from pyspark.sql.window import Window
 
 uncertainty_rows = [(d, u) for d, u in uncertainty_map.items()]
-uncertainty_df = spark.createDataFrame(uncertainty_rows, ["driver", "uncertainty"])
+uncertainty_df   = spark.createDataFrame(uncertainty_rows, ["driver", "uncertainty"])
 
 final_preds = (
     driver_preds
     .join(uncertainty_df, on="driver", how="left")
     .fillna(0.0, subset=["uncertainty"])
     .orderBy(F.desc("win_probability"))
-    .withColumn("predicted_position", F.row_number().over(
-        __import__("pyspark.sql", fromlist=["Window"]).Window.orderBy(F.desc("win_probability"))
-    ))
+    .withColumn(
+        "predicted_position",
+        F.row_number().over(Window.orderBy(F.desc("win_probability"))),
+    )
 )
 
 print("\nFinal predictions:")
-final_preds.select(
-    "driver", "team", "win_probability", "uncertainty", "predicted_position"
-).show(25)
+final_preds.select("driver", "team", "win_probability", "uncertainty", "predicted_position").show(25)
 
-#  SESSION SCORES PER DRIVER 
+# ── SESSION SCORES & TREND ────────────────────────────────────────────────────
 
-SESSION_TYPES = ["FP1", "FP2", "FP3", "Q", "SQ", "S"]
-SESSION_WEIGHTS = {"FP1": 0.15, "FP2": 0.25, "FP3": 0.35, "Q": 0.70, "SQ": 0.60, "S": 0.50}
+_non_race_sessions = [s for s in SESSION_TYPES if s != "R"]
+sess_scores = session_scores(predictions_raw, _non_race_sessions, SESSION_WEIGHTS)
+trend       = trend_map(predictions_raw)
 
-session_scores_raw = (
-    predictions_raw
-    .groupBy("driver", "session_type")
-    .agg(F.avg("lap_time_delta").alias("avg_delta"))
-    .collect()
-)
-
-# Build {driver: {session_type: avg_delta}} lookup
-from collections import defaultdict
-driver_session_map = defaultdict(dict)
-for row in session_scores_raw:
-    driver_session_map[row["driver"]][row["session_type"]] = row["avg_delta"]
-
-#  PACE TREND PER DRIVER
-
-# pace_trend = recent 2 rounds avg delta minus previous 4 rounds avg delta.
-# Negative = driver is improving (getting closer to session best).
-# Positive = driver is declining.
-# Null = not enough rounds yet (< 3 rounds of data).
-#
-# We take the mean pace_trend across all Race session rows for this driver
-# this weekend. Since pace_trend is a cross-round feature it's the same
-# value on every row for a given driver — avg is just a safe aggregation.
-#
-# Thresholds for label:
-#   trend < -0.15  → "up"    (meaningfully improving)
-#   trend > +0.15  → "down"  (meaningfully declining)
-#   otherwise      → "flat"  (no clear trend or insufficient data)
-
-TREND_THRESHOLD = 0.15
-
-trend_raw = (
-    predictions_raw
-    .filter(F.col("session_type") == "R")
-    .groupBy("driver")
-    .agg(F.avg("pace_trend").alias("avg_pace_trend"))
-    .collect()
-)
-
-# Fall back to all sessions if no Race rows yet (mid-weekend)
-if not trend_raw:
-    trend_raw = (
-        predictions_raw
-        .groupBy("driver")
-        .agg(F.avg("pace_trend").alias("avg_pace_trend"))
-        .collect()
-    )
-
-def trend_label(val):
-    if val is None:
-        return "flat"
-    if val < -TREND_THRESHOLD:
-        return "up"
-    if val > TREND_THRESHOLD:
-        return "down"
-    return "flat"
-
-trend_map = {
-    row["driver"]: {
-        "label": trend_label(row["avg_pace_trend"]),
-        "value": round(float(row["avg_pace_trend"]), 4) if row["avg_pace_trend"] is not None else None,
-    }
-    for row in trend_raw
-}
-
-#  FEATURE IMPORTANCE 
+# ── FEATURE IMPORTANCE ────────────────────────────────────────────────────────
 
 FEATURE_COLS = [
     "lap_time_delta",
@@ -311,7 +212,7 @@ FEATURE_COLS = [
     "pace_trend",
 ]
 
-gbt_model = model.stages[-1]  # GBTClassifier is last stage
+gbt_model   = model.stages[-1]
 importances = gbt_model.featureImportances.toArray().tolist()
 
 feature_importance = [
@@ -323,55 +224,15 @@ feature_importance = [
     )
 ]
 
-#  HISTORICAL ACCURACY (season so far) 
+# ── HISTORICAL ACCURACY ───────────────────────────────────────────────────────
 
-history_df = (
-    spark.read.format("delta").load(PREDICTIONS_PATH)
-    .filter(
-        (F.col("season") == SEASON)
-        & (F.col("model_version").startswith("base_r"))   # post-race models only
-        & (F.col("predicted_position") == 1)
-    )
-    .select("event", "driver", "round")
-    .withColumnRenamed("driver", "predicted")
+history, season_acc = season_history(
+    spark, PREDICTIONS_PATH, FEATURES_PATH,
+    season=SEASON,
+    model_version_filter="base_r",
 )
 
-# Actual race winners: from Gold features, race_position=1
-actuals_df = (
-    spark.read.format("delta").load(FEATURES_PATH)
-    .filter(
-        (F.col("season") == SEASON)
-        & (F.col("session_type") == "R")
-        & (F.col("race_position") == 1)
-    )
-    .select("event", "driver")
-    .distinct()
-    .withColumnRenamed("driver", "actual")
-)
-
-history_rows = (
-    history_df
-    .join(actuals_df, on="event", how="inner")
-    .withColumn("top3_hit", F.col("predicted") == F.col("actual"))
-    .orderBy("round")
-    .select("event", "predicted", "actual", "top3_hit")
-    .collect()
-)
-
-history = [
-    {
-        "event":     row["event"],
-        "predicted": row["predicted"],
-        "actual":    row["actual"],
-        "top3_hit":  bool(row["top3_hit"]),
-    }
-    for row in history_rows
-]
-
-season_top3_hits = sum(1 for h in history if h["top3_hit"])
-season_accuracy  = round(season_top3_hits / len(history), 4) if history else 0.0
-
-#  WRITE PREDICTIONS DELTA 
+# ── WRITE PREDICTIONS DELTA ───────────────────────────────────────────────────
 
 output_df = final_preds.select(
     F.col("driver").cast("string"),
@@ -396,52 +257,37 @@ output_df = final_preds.select(
 
 print(f"\nPredictions Delta written to: {PREDICTIONS_PATH}")
 
-# ── EXPORT predictions.json FOR DASHBOARD ─────────────────────────────────────
+# ── EXPORT predictions.json ───────────────────────────────────────────────────
 
 rows = final_preds.orderBy(F.desc("win_probability")).collect()
+sessions_used = [
+    row["session_type"]
+    for row in predictions_raw.select("session_type").distinct().collect()
+]
 
-payload = {
-    "model_version":   model_version,
-    "generated_at":    datetime.now(timezone.utc).isoformat(),
-    "event":           EVENT,
-    "round":           ROUND_NUMBER,
-    "season":          SEASON,
-    "sessions_used":   [row["session_type"] for row in predictions_raw.select("session_type").distinct().collect()],
-    "season_accuracy": {
-        "top3_pct": season_accuracy,
-        "races":    len(history),
-    },
-    "recency_lambda": 0.15,
-    "predictions": [
+payload = build_payload(
+    model_version=model_version,
+    event=EVENT,
+    round_number=ROUND_NUMBER,
+    season=SEASON,
+    sessions_used=sessions_used,
+    season_accuracy=(season_acc, len(history)),
+    recency_lambda=RECENCY_LAMBDA,
+    predictions=[
         {
             "driver":             row["driver"],
             "team":               row["team"],
             "predicted_position": row["predicted_position"],
             "win_probability":    round(float(row["win_probability"]), 4),
             "uncertainty":        round(float(row["uncertainty"]), 4),
-            "trend":              trend_map.get(row["driver"], {"label": "flat", "value": None}),
-            "sessions": {
-                s: (
-                    {
-                        "score":  round(float(driver_session_map[row["driver"]].get(s, 0.0)), 2),
-                        "weight": SESSION_WEIGHTS[s],
-                    }
-                    if s in driver_session_map[row["driver"]]
-                    else None
-                )
-                for s in SESSION_TYPES
-            },
+            "trend":              trend.get(row["driver"], {"label": "flat", "value": None}),
+            "sessions":           sess_scores.get(row["driver"], {}),
         }
         for row in rows
     ],
-    "feature_importance": feature_importance,
-    "history":            history,
-}
+    feature_importance=feature_importance,
+    history=history,
+)
 
-dashboard_json_path = BASE_PATH + "/dashboard/public/predictions.json"
-dbutils.fs.put(dashboard_json_path, json.dumps(payload, indent=2), overwrite=True)
-
-print(f"predictions.json written to: {dashboard_json_path}")
-print(f"\nNext step: git add dashboard/public/predictions.json && git push")
-print(f"Vercel will redeploy automatically within ~30 seconds.")
+write_dashboard_json(payload, DASHBOARD_JSON_PATH)
 print(f"\nDone. Model: {model_version} | Drivers predicted: {len(rows)}")

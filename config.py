@@ -32,7 +32,7 @@ TELEMETRY_RAW_PATH   = f"{BASE_PATH}/telemetry/raw"
 TELEMETRY_CLEAN_PATH = f"{BASE_PATH}/telemetry/clean"
 
 # Seasons to backfill during initial historical ingestion
-TEL_SEASONS = [2024, 2025]
+TEL_SEASONS = [2024, 2025, 2026]
 
 # MAE encoder hyperparameters — shared between 09, 10, and 11 so they stay in sync.
 # If you change any of these, delete the checkpoint and retrain from scratch.

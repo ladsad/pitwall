@@ -142,10 +142,14 @@ sessions_skipped  = 0
 laps_rejected     = 0
 
 for year in TEL_SEASONS:
-    bronze_season_path = f"{TELEMETRY_RAW_PATH}/season={year}"
-
     try:
-        season_df = spark.read.schema(TEL_BRONZE_SCHEMA).parquet(bronze_season_path)
+        bronze_season_path = f"{TELEMETRY_RAW_PATH}/season={year}"
+        season_df = (
+            spark.read
+                 .schema(TEL_BRONZE_SCHEMA)
+                 .option("basePath", TELEMETRY_RAW_PATH)
+                 .parquet(bronze_season_path)
+        )
     except Exception as e:
         print(f"  [skip] Season {year} — no Bronze data: {e}")
         continue

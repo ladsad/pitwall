@@ -221,7 +221,12 @@ print(f"  Total laps written: {total_laps:,}")
 # Spot-check: count rows across Bronze
 print("\nSpot-check — row counts by season (Bronze telemetry):")
 try:
-    all_bronze = spark.read.schema(TEL_BRONZE_SCHEMA).parquet(TELEMETRY_RAW_PATH)
+    all_bronze = (
+        spark.read
+             .schema(TEL_BRONZE_SCHEMA)
+             .option("basePath", TELEMETRY_RAW_PATH)
+             .parquet(TELEMETRY_RAW_PATH)
+    )
     all_bronze.groupBy("season", "session_type").count().orderBy("season", "session_type").show()
 except Exception as e:
     print(f"  Could not read Bronze for spot-check: {e}")

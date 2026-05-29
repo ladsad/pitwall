@@ -44,7 +44,7 @@ from datetime import datetime, timezone
 try:
     PROJECT_ROOT = pathlib.Path(__file__).resolve().parent
 except NameError:
-    PROJECT_ROOT = pathlib.Path("/Workspace/Repos/pitwall")
+    PROJECT_ROOT = pathlib.Path("/Workspace/Users/emailofshauryak@gmail.com/pitwall")
 
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -128,12 +128,6 @@ if PIPELINE not in PIPELINE_STEPS:
 
 steps = PIPELINE_STEPS[PIPELINE]
 
-# ── RESOLVE ABSOLUTE NOTEBOOK PATHS ──────────────────────────────────────────
-# dbutils.notebook.run() needs absolute Workspace paths.
-# When running via Repos the root is /Workspace/Repos/<repo-name>.
-
-WORKSPACE_ROOT = os.environ.get("DATABRICKS_WORKSPACE_ROOT", "/Workspace/Repos/pitwall")
-
 # ── DISPLAY PLAN ──────────────────────────────────────────────────────────────
 
 print(f"{'='*60}")
@@ -152,19 +146,21 @@ results   = []
 t_overall = time.time()
 
 for step_idx, (notebook_rel, timeout_s, description) in enumerate(steps, 1):
-    nb_abs  = f"{WORKSPACE_ROOT}/{notebook_rel}"
+    # Construct absolute path to the Python file
+    py_file = str(PROJECT_ROOT / f"{notebook_rel}.py")
     t_start = time.time()
 
     print(f"[{step_idx}/{len(steps)}] START  ── {description}")
-    print(f"          Notebook : {nb_abs}")
+    print(f"          File     : {py_file}")
     print(f"          Timeout  : {timeout_s // 60} min")
 
     try:
         if ON_DATABRICKS:
-            result = dbutils.notebook.run(nb_abs, timeout_s, arguments={})
+            # Use %run magic to execute Python file in the current namespace
+            get_ipython().run_line_magic('run', py_file)
+            result = "OK"
         else:
             # Local fallback — execute the notebook file directly as a script
-            # (useful for testing outside Databricks)
             import runpy
             nb_local = str(PROJECT_ROOT / notebook_rel) + ".py"
             runpy.run_path(nb_local, run_name="__main__")

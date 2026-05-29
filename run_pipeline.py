@@ -56,8 +56,11 @@ if str(PROJECT_ROOT) not in sys.path:
 
 try:
     _ctx         = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
-    _nb_path     = _ctx.notebookPath().get()          # e.g. /Workspace/Users/.../pitwall/run_pipeline
-    WORKSPACE_ROOT = str(pathlib.Path(_nb_path).parent)  # strip /run_pipeline filename
+    _nb_path     = _ctx.notebookPath().get()  # CE returns /Users/... (no /Workspace prefix)
+    # Ensure /Workspace prefix — CE omits it but dbutils.notebook.run() requires it
+    if not _nb_path.startswith("/Workspace"):
+        _nb_path = "/Workspace" + _nb_path
+    WORKSPACE_ROOT = str(pathlib.Path(_nb_path).parent)
     ON_DATABRICKS  = True
 except Exception:
     WORKSPACE_ROOT = os.environ.get("DATABRICKS_WORKSPACE_ROOT", "/Workspace/Repos/pitwall")

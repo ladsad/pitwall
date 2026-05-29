@@ -49,30 +49,48 @@ except NameError:
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+# ── ENVIRONMENT DETECTION ─────────────────────────────────────────────────────
+# Detect Databricks by querying the notebook context API.
+# This is more reliable than catching NameError on dbutils.widgets,
+# and gives us the real workspace path automatically.
+
+try:
+    _ctx         = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
+    _nb_path     = _ctx.notebookPath().get()          # e.g. /Workspace/Users/.../pitwall/run_pipeline
+    WORKSPACE_ROOT = str(pathlib.Path(_nb_path).parent)  # strip /run_pipeline filename
+    ON_DATABRICKS  = True
+except Exception:
+    WORKSPACE_ROOT = os.environ.get("DATABRICKS_WORKSPACE_ROOT", "/Workspace/Repos/pitwall")
+    ON_DATABRICKS  = False
+
+print(f"ON_DATABRICKS  : {ON_DATABRICKS}")
+print(f"WORKSPACE_ROOT : {WORKSPACE_ROOT}")
+
 # ── WIDGET / PIPELINE SELECTOR ────────────────────────────────────────────────
 # On Databricks this creates a dropdown widget at the top of the notebook.
 # Locally it reads from the environment variable PIPELINE (default: weekend_rf).
 
-try:
-    dbutils.widgets.dropdown(
-        "PIPELINE",
-        "weekend_rf",
-        [
+if ON_DATABRICKS:
+    try:
+        dbutils.widgets.dropdown(
+            "PIPELINE",
             "weekend_rf",
-            "weekend_mae",
-            "tel_backfill",
-            "mae_pretrain",
-            "mae_finetune",
-            "full_mae",
-            "dev_eda",
-        ],
-        "Select Pipeline",
-    )
-    PIPELINE = dbutils.widgets.get("PIPELINE")
-    ON_DATABRICKS = True
-except NameError:
-    PIPELINE      = os.environ.get("PIPELINE", "weekend_rf")
-    ON_DATABRICKS = False
+            [
+                "weekend_rf",
+                "weekend_mae",
+                "tel_backfill",
+                "mae_pretrain",
+                "mae_finetune",
+                "full_mae",
+                "dev_eda",
+            ],
+            "Select Pipeline",
+        )
+        PIPELINE = dbutils.widgets.get("PIPELINE")
+    except Exception:
+        PIPELINE = os.environ.get("PIPELINE", "weekend_rf")
+else:
+    PIPELINE = os.environ.get("PIPELINE", "weekend_rf")
 
 # ── PIPELINE DEFINITIONS ──────────────────────────────────────────────────────
 

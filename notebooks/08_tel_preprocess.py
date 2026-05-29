@@ -147,9 +147,15 @@ for year in TEL_SEASONS:
     # ── Diagnostic: verify Bronze path exists before reading ──────────────────
     try:
         entries = dbutils.fs.ls(bronze_season_path)
-        print(f"  [diag] {year}: {len(entries)} entries at {bronze_season_path}")
+        print(f"  [diag] {year}: {len(entries)} events at {bronze_season_path}")
         if entries:
             print(f"  [diag] sample: {[e.name for e in entries[:3]]}")
+    except NameError:
+        # dbutils not available (local run) — fall back to os.path
+        if not os.path.exists(bronze_season_path):
+            print(f"  [skip] Season {year} — Bronze path not found (local): {bronze_season_path}")
+            print(f"         Run 07_tel_ingest.py first.")
+            continue
     except Exception as diag_e:
         print(f"  [skip] Season {year} — Bronze path not found: {diag_e}")
         print(f"         Path checked: {bronze_season_path}")

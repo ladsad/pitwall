@@ -57,7 +57,7 @@ SESSION_TYPE_MAP = {
 
 def _success_flag(season: int, event: str, session_code: str) -> str:
     """Return DBFS path of the _SUCCESS marker for this session."""
-    return f"{TELEMETRY_RAW_PATH}/season={season}/event={event}/session={session_code}/_SUCCESS"
+    return f"{TELEMETRY_RAW_PATH}/{season}/{event}/{session_code}/_SUCCESS"
 
 
 def _session_already_done(season: int, event: str, session_code: str) -> bool:
@@ -168,9 +168,9 @@ def ingest_session_telemetry(season: int, event: str, session_code: str) -> int:
 
     output_path = (
         f"{TELEMETRY_RAW_PATH}"
-        f"/season={season}"
-        f"/event={event}"
-        f"/session={session_code}"
+        f"/{season}"
+        f"/{event}"
+        f"/{session_code}"
     )
 
     sdf.write.mode("overwrite").parquet(output_path)
@@ -224,7 +224,6 @@ try:
     all_bronze = (
         spark.read
              .schema(TEL_BRONZE_SCHEMA)
-             .option("basePath", TELEMETRY_RAW_PATH)
              .parquet(TELEMETRY_RAW_PATH)
     )
     all_bronze.groupBy("season", "session_type").count().orderBy("season", "session_type").show()

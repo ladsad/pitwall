@@ -142,16 +142,28 @@ sessions_skipped  = 0
 laps_rejected     = 0
 
 for year in TEL_SEASONS:
+    bronze_season_path = f"{TELEMETRY_RAW_PATH}/{year}"
+
+    # ── Diagnostic: verify Bronze path exists before reading ──────────────────
     try:
-        bronze_season_path = f"{TELEMETRY_RAW_PATH}/season={year}"
+        entries = dbutils.fs.ls(bronze_season_path)
+        print(f"  [diag] {year}: {len(entries)} entries at {bronze_season_path}")
+        if entries:
+            print(f"  [diag] sample: {[e.name for e in entries[:3]]}")
+    except Exception as diag_e:
+        print(f"  [skip] Season {year} — Bronze path not found: {diag_e}")
+        print(f"         Path checked: {bronze_season_path}")
+        print(f"         Run 07_tel_ingest.py first.")
+        continue
+
+    try:
         season_df = (
             spark.read
                  .schema(TEL_BRONZE_SCHEMA)
-                 .option("basePath", TELEMETRY_RAW_PATH)
                  .parquet(bronze_season_path)
         )
     except Exception as e:
-        print(f"  [skip] Season {year} — no Bronze data: {e}")
+        print(f"  [skip] Season {year} — could not read Bronze: {e}")
         continue
 
     events = [row["event"] for row in season_df.select("event").distinct().collect()]

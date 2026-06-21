@@ -9,7 +9,7 @@ from scipy.interpolate import interp1d
 try:
     PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
 except NameError:
-    PROJECT_ROOT = pathlib.Path("/Workspace/Repos/pitwall")
+    PROJECT_ROOT = pathlib.Path.cwd()
 
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -32,12 +32,13 @@ MIN_SAMPLES           = 100    # fewer samples → bad telemetry
 MAX_INTERP_FRACTION   = 0.20   # more than 20% interpolated points → reject lap
 SC_LAP_MULTIPLIER     = 2.0    # laps > 2× session median are safety-car laps
 
-SILVER_PATH = f"{TELEMETRY_CLEAN_PATH}/silver"
+SILVER_PATH = str(TELEMETRY_CLEAN_PATH / "silver")
 
 print(f"Telemetry preprocessing: seasons {TEL_SEASONS}")
 print(f"Resample length N      : {N}")
 print(f"Input  (Bronze)        : {TELEMETRY_RAW_PATH}")
 print(f"Output (Silver)        : {SILVER_PATH}")
+
 
 # ── LOAD RACE RESULTS FOR LABELS ─────────────────────────────────────────────
 # Labels (race_position) come from the existing Gold feature store.
@@ -45,7 +46,7 @@ print(f"Output (Silver)        : {SILVER_PATH}")
 
 try:
     labels_df = (
-        spark.read.format("delta").load(FEATURES_PATH)
+        spark.read.parquet(str(FEATURES_PATH))
              .filter(F.col("session_type") == "R")
              .select("season", "event", "driver", "race_position")
              .distinct()
@@ -142,23 +143,11 @@ sessions_skipped  = 0
 laps_rejected     = 0
 
 for year in TEL_SEASONS:
-    bronze_season_path = f"{TELEMETRY_RAW_PATH}/{year}"
+    bronze_season_path = str(TELEMETRY_RAW_PATH / str(year))
 
-    # ── Diagnostic: verify Bronze path exists before reading ──────────────────
-    try:
-        entries = dbutils.fs.ls(bronze_season_path)
-        print(f"  [diag] {year}: {len(entries)} events at {bronze_season_path}")
-        if entries:
-            print(f"  [diag] sample: {[e.name for e in entries[:3]]}")
-    except NameError:
-        # dbutils not available (local run) — fall back to os.path
-        if not os.path.exists(bronze_season_path):
-            print(f"  [skip] Season {year} — Bronze path not found (local): {bronze_season_path}")
-            print(f"         Run 07_tel_ingest.py first.")
-            continue
-    except Exception as diag_e:
-        print(f"  [skip] Season {year} — Bronze path not found: {diag_e}")
-        print(f"         Path checked: {bronze_season_path}")
+    # ── Verify Bronze path exists before reading ─────────────────────────────
+    if not os.path.exists(bronze_season_path):
+        print(f"  [skip] Season {year} — Bronze path not found: {bronze_season_path}")
         print(f"         Run 07_tel_ingest.py first.")
         continue
 

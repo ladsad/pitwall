@@ -2,11 +2,10 @@
 11_mae_predict.py — PRIMARY PREDICTION NOTEBOOK
 ─────────────────────────────────────────────────
 Runs the fine-tuned F1MAE encoder on the current race weekend's telemetry,
-writes predictions to the shared PREDICTIONS_PATH Delta table (model_version='mae'),
-and exports predictions.json for the dashboard.
+writes predictions to Parquet + Supabase, and exports predictions.json.
 
 Prerequisites (per race weekend):
-  01_ingest.py → 02_clean.py → 03_features.py   (Gold Delta — for labels)
+  01_ingest.py → 02_clean.py → 03_features.py   (Gold — for labels)
   07_tel_ingest.py → 08_tel_preprocess.py        (Silver telemetry)
   [09_mae_pretrain.py + 10_mae_finetune.py — one-time historical training]
 
@@ -25,7 +24,7 @@ from pyspark.sql import functions as F
 try:
     PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
 except NameError:
-    PROJECT_ROOT = pathlib.Path("/Workspace/Repos/pitwall")
+    PROJECT_ROOT = pathlib.Path.cwd()
 
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -38,6 +37,7 @@ from utils.predict_utils import (
     build_payload,
     write_dashboard_json,
 )
+from utils.db import upsert_predictions
 from config import (
     SEASON, EVENT, ROUND_NUMBER,
     BASE_PATH, TELEMETRY_CLEAN_PATH, PREDICTIONS_PATH, FEATURES_PATH,
@@ -47,8 +47,8 @@ from config import (
 
 spark = get_spark_session("pitwall-mae-predict")
 
-SILVER_PATH     = f"{TELEMETRY_CLEAN_PATH}/silver"
-FINETUNED_MODEL = f"{BASE_PATH}/models/mae_finetuned.pt"
+SILVER_PATH     = str(TELEMETRY_CLEAN_PATH / "silver")
+FINETUNED_MODEL = str(BASE_PATH / "models" / "mae_finetuned.pt")
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Device: {device}")
@@ -62,10 +62,10 @@ if not os.path.exists(FINETUNED_MODEL):
         "  MAE MODEL NOT YET TRAINED\n"
         "=" * 65 + "\n"
         f"  Fine-tuned model not found at:\n    {FINETUNED_MODEL}\n\n"
-        "  The MAE pipeline requires ~20–45 hours of compute on CE\n"
+        "  The MAE pipeline requires ~20–45 hours of compute\n"
         "  before it can generate predictions.\n\n"
         "  ► FOR TODAY'S RACE: run 06_predict.py (RF/GBT baseline)\n\n"
-        "  ► TO ENABLE MAE FOR FUTURE RACES, run in order on CE:\n"
+        "  ► TO ENABLE MAE FOR FUTURE RACES, run in order:\n"
         "    1. 07_tel_ingest.py     (~6–10 hrs, restartable)\n"
         "    2. 08_tel_preprocess.py (~1–2 hrs)\n"
         "    3. 09_mae_pretrain.py   (~15–38 hrs, checkpointed per epoch)\n"
@@ -160,7 +160,7 @@ print(f"  {'─'*6} {'─'*8} {'─'*10} {'─'*13}")
 for r in results:
     print(f"  {r['driver']:<6} {r['predicted_position']:>8} {r['win_probability']:>10.4f} {r['uncertainty']:>13.4f}")
 
-# ── WRITE PREDICTIONS DELTA ───────────────────────────────────────────────────
+# ── WRITE PREDICTIONS PARQUET ─────────────────────────────────────────────────
 
 pred_sdf = spark.createDataFrame(
     [
@@ -178,15 +178,18 @@ pred_sdf = spark.createDataFrame(
     ),
 )
 
-(
-    pred_sdf.write
-    .format("delta")
-    .mode("overwrite")
-    .option("replaceWhere", f"season = {SEASON} AND event = '{EVENT}' AND model_version = 'mae'")
-    .save(PREDICTIONS_PATH)
-)
+pred_output = str(PREDICTIONS_PATH / f"season={SEASON}" / f"event={EVENT}" / "model=mae")
+pred_sdf.write.mode("overwrite").parquet(pred_output)
+print(f"\nMAE predictions written to: {pred_output}")
 
-print(f"\nMAE predictions written to: {PREDICTIONS_PATH} (model_version='mae')")
+# ── WRITE TO SUPABASE ─────────────────────────────────────────────────────────
+
+try:
+    rows_for_db = [row.asDict() for row in pred_sdf.collect()]
+    upsert_predictions(rows_for_db)
+    print("Predictions upserted to Supabase.")
+except Exception as e:
+    print(f"Supabase write skipped (set SUPABASE_URL/KEY to enable): {e}")
 
 # ── COMPARISON WITH RF/GBT ────────────────────────────────────────────────────
 
@@ -194,7 +197,7 @@ print("\n── Comparison: MAE vs RF/GBT (if post-race results available) ─�
 
 try:
     rf_preds_sdf = (
-        spark.read.format("delta").load(PREDICTIONS_PATH)
+        spark.read.parquet(str(PREDICTIONS_PATH))
              .filter(
                  (F.col("season") == SEASON)
                  & (F.col("event") == EVENT)
@@ -209,7 +212,7 @@ try:
         print("  No post-race RF predictions found (race may not have completed yet).")
     else:
         actuals_sdf = (
-            spark.read.format("delta").load(FEATURES_PATH)
+            spark.read.parquet(str(FEATURES_PATH))
                  .filter(
                      (F.col("season") == SEASON)
                      & (F.col("event") == EVENT)
@@ -250,7 +253,7 @@ try:
     history, season_acc = season_history(
         spark, PREDICTIONS_PATH, FEATURES_PATH,
         season=SEASON,
-        model_version_filter=F.col("model_version") == "mae",
+        model_version_filter="mae",
     )
     print(f"\nMAE winner accuracy this season: {sum(1 for h in history if h['top3_hit'])}/{len(history)} ({season_acc:.1%})")
 except Exception as e:

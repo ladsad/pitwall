@@ -2,7 +2,7 @@
 06_predict.py — RF/GBT Prediction (Baseline)
 ──────────────────────────────────────────────
 Generates race predictions using the trained RF/GBT ensemble on Gold tabular
-features. Writes predictions.json for the dashboard.
+features. Writes predictions to Parquet + Supabase + dashboard JSON.
 
   - When MAE model (mae_finetuned.pt) is trained: use 11_mae_predict.py instead.
   - This notebook remains as the RF/GBT comparison baseline.
@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 try:
     PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
 except NameError:
-    PROJECT_ROOT = pathlib.Path("/Workspace/Repos/pitwall")
+    PROJECT_ROOT = pathlib.Path.cwd()
 
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -36,6 +36,7 @@ from utils.predict_utils import (
     build_payload,
     write_dashboard_json,
 )
+from utils.db import upsert_predictions
 from config import (
     SEASON, EVENT, ROUND_NUMBER,
     BASE_PATH, FEATURES_PATH, MODELS_PATH, PREDICTIONS_PATH,
@@ -48,21 +49,13 @@ spark = get_spark_session("pitwall-predict")
 
 # ── LOAD MODEL ────────────────────────────────────────────────────────────────
 
-qualifying_path = f"{MODELS_PATH}/qualifying_r{ROUND_NUMBER:02d}"
-base_path       = f"{MODELS_PATH}/base_r{ROUND_NUMBER:02d}"
+qualifying_path = str(MODELS_PATH / f"qualifying_r{ROUND_NUMBER:02d}")
+base_path       = str(MODELS_PATH / f"base_r{ROUND_NUMBER:02d}")
 
-
-def path_exists(path: str) -> bool:
-    try:
-        return len(dbutils.fs.ls(path)) > 0  # noqa: F821
-    except Exception:
-        return os.path.exists(path)
-
-
-if path_exists(qualifying_path):
+if os.path.exists(qualifying_path):
     model_path    = qualifying_path
     model_version = f"qualifying_r{ROUND_NUMBER:02d}"
-elif path_exists(base_path):
+elif os.path.exists(base_path):
     model_path    = base_path
     model_version = f"base_r{ROUND_NUMBER:02d}"
 else:
@@ -78,12 +71,8 @@ model = PipelineModel.load(model_path)
 
 # ── LOAD FEATURES FOR CURRENT WEEKEND ────────────────────────────────────────
 
-predict_df = (
-    spark.read.format("delta").load(FEATURES_PATH)
-         .filter(
-             (F.col("season") == SEASON)
-             & (F.col("event") == EVENT)
-         )
+predict_df = spark.read.parquet(
+    str(FEATURES_PATH / f"season={SEASON}" / f"event={EVENT}")
 )
 
 row_count = predict_df.count()
@@ -232,7 +221,7 @@ history, season_acc = season_history(
     model_version_filter="base_r",
 )
 
-# ── WRITE PREDICTIONS DELTA ───────────────────────────────────────────────────
+# ── WRITE PREDICTIONS PARQUET ─────────────────────────────────────────────────
 
 output_df = final_preds.select(
     F.col("driver").cast("string"),
@@ -247,15 +236,18 @@ output_df = final_preds.select(
     F.lit(datetime.now(timezone.utc).isoformat()).cast("string").alias("generated_at"),
 )
 
-(
-    output_df.write
-    .format("delta")
-    .mode("overwrite")
-    .option("replaceWhere", f"season = {SEASON} AND event = '{EVENT}'")
-    .save(PREDICTIONS_PATH)
-)
+pred_output = str(PREDICTIONS_PATH / f"season={SEASON}" / f"event={EVENT}")
+output_df.write.mode("overwrite").parquet(pred_output)
+print(f"\nPredictions Parquet written to: {pred_output}")
 
-print(f"\nPredictions Delta written to: {PREDICTIONS_PATH}")
+# ── WRITE TO SUPABASE ─────────────────────────────────────────────────────────
+
+try:
+    rows_for_db = [row.asDict() for row in output_df.collect()]
+    upsert_predictions(rows_for_db)
+    print("Predictions upserted to Supabase.")
+except Exception as e:
+    print(f"Supabase write skipped (set SUPABASE_URL/KEY to enable): {e}")
 
 # ── EXPORT predictions.json ───────────────────────────────────────────────────
 

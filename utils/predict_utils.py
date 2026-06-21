@@ -10,6 +10,7 @@ import json
 import statistics
 from collections import defaultdict
 from datetime import datetime, timezone
+from pathlib import Path
 
 from pyspark.sql import functions as F
 
@@ -155,28 +156,34 @@ def season_history(spark, predictions_path, features_path, season, model_version
     else:
         mv_col = model_version_filter
 
-    history_df = (
-        spark.read.format("delta").load(predictions_path)
-             .filter(
-                 (F.col("season") == season)
-                 & mv_col
-                 & (F.col("predicted_position") == 1)
-             )
-             .select("event", "driver", "round")
-             .withColumnRenamed("driver", "predicted")
-    )
+    try:
+        history_df = (
+            spark.read.parquet(str(predictions_path))
+                 .filter(
+                     (F.col("season") == season)
+                     & mv_col
+                     & (F.col("predicted_position") == 1)
+                 )
+                 .select("event", "driver", "round")
+                 .withColumnRenamed("driver", "predicted")
+        )
+    except Exception:
+        return [], 0.0
 
-    actuals_df = (
-        spark.read.format("delta").load(features_path)
-             .filter(
-                 (F.col("season") == season)
-                 & (F.col("session_type") == "R")
-                 & (F.col("race_position") == 1)
-             )
-             .select("event", "driver")
-             .distinct()
-             .withColumnRenamed("driver", "actual")
-    )
+    try:
+        actuals_df = (
+            spark.read.parquet(str(features_path))
+                 .filter(
+                     (F.col("season") == season)
+                     & (F.col("session_type") == "R")
+                     & (F.col("race_position") == 1)
+                 )
+                 .select("event", "driver")
+                 .distinct()
+                 .withColumnRenamed("driver", "actual")
+        )
+    except Exception:
+        return [], 0.0
 
     rows = (
         history_df
@@ -242,20 +249,9 @@ def build_payload(
 # ── DASHBOARD JSON WRITER ─────────────────────────────────────────────────────
 
 def write_dashboard_json(payload, path):
-    """
-    Write predictions.json. Uses dbutils.fs.put on Databricks, falls back to
-    a local open() call for local runs.
-    """
+    """Write predictions.json to the local filesystem."""
     json_str = json.dumps(payload, indent=2)
-    try:
-        dbutils.fs.put(path, json_str, overwrite=True)  # noqa: F821 (Databricks global)
-        print(f"predictions.json written to: {path}")
-        print("Next step: git add dashboard/public/predictions.json && git push")
-        print("Vercel will redeploy automatically within ~30 seconds.")
-    except NameError:
-        # Local fallback
-        import pathlib
-        local_path = pathlib.Path(path)
-        local_path.parent.mkdir(parents=True, exist_ok=True)
-        local_path.write_text(json_str, encoding="utf-8")
-        print(f"predictions.json written locally to: {local_path}")
+    local_path = Path(path)
+    local_path.parent.mkdir(parents=True, exist_ok=True)
+    local_path.write_text(json_str, encoding="utf-8")
+    print(f"predictions.json written to: {local_path}")

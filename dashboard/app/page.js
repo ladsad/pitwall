@@ -16,7 +16,7 @@ export default function Home() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch("/predictions.json")
+    fetch(`/api/predictions?season=2026&event=${encodeURIComponent(currentEvent)}`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to load predictions.json");
         return res.json();
@@ -49,21 +49,21 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col bg-[#000000]">
       <TopBar version={data.model_version} generatedAt={data.generated_at} />
-      <HeroStrip 
-        round={data.round} 
-        event={data.event} 
-        sessions={data.sessions_used} 
-        accuracy={data.season_accuracy} 
+      <HeroStrip
+        round={data.round}
+        event={data.event}
+        sessions={data.sessions_used}
+        accuracy={data.season_accuracy}
       />
 
       <div style={{ backgroundColor: '#141414' }} className="flex-1 grid grid-cols-1 lg:grid-cols-[65%_35%] gap-[1px]">
         {/* Left Column */}
         <div className="flex flex-col gap-[1px]">
           <div className="h-[400px]">
-            <DriverRanking 
-              predictions={data.predictions} 
-              selectedDriver={selectedDriver} 
-              onSelectDriver={setSelectedDriver} 
+            <DriverRanking
+              predictions={data.predictions}
+              selectedDriver={selectedDriver}
+              onSelectDriver={setSelectedDriver}
             />
           </div>
           <div className="grid grid-cols-2 gap-[1px] flex-1">

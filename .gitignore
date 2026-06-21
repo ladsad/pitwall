@@ -9,3 +9,5 @@ dashboard/.next/
 .cache
 .vscode
 context/
+# Windows PySpark dependencies
+hadoop/

@@ -5,8 +5,7 @@ import sys
 try:
     PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
 except NameError:
-    # Running as a Databricks notebook — __file__ is not defined
-    PROJECT_ROOT = pathlib.Path("/Workspace/Repos/pitwall")
+    PROJECT_ROOT = pathlib.Path.cwd()
 
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -28,7 +27,7 @@ spark = get_spark_session("pitwall-cleanup")
 
 #  READ BRONZE
 
-bronze_path = f"{RAW_PATH}/season={SEASON}/event={EVENT}"
+bronze_path = str(RAW_PATH / f"season={SEASON}" / f"event={EVENT}")
 
 raw_df = (
     spark.read
@@ -65,26 +64,23 @@ print(f"Rows remaining (Silver)   : {silver_count:,}")
 print(f"Total rows removed        : {raw_count - silver_count:,} "
       f"({(raw_count - silver_count) / raw_count * 100:.1f}%)")
 
-#  WRITE SILVER DATA
+#  WRITE SILVER DATA — Parquet (replacing Delta on local)
+
+silver_output = str(CLEAN_PATH / f"season={SEASON}" / f"event={EVENT}")
 
 (
     silver_df
     .write
-    .format("delta")
     .mode("overwrite")
-    .option("replaceWhere", f"season = {SEASON} AND event = '{EVENT}'")
-    .partitionBy("season", "event", "session_type")
-    .save(CLEAN_PATH)
+    .partitionBy("session_type")
+    .parquet(silver_output)
 )
  
-print(f"\nSilver Delta written to: {CLEAN_PATH}")
+print(f"\nSilver Parquet written to: {silver_output}")
 
 #  VERIFICATION
 
-verify_df = (
-    spark.read.format("delta").load(CLEAN_PATH)
-         .filter((F.col("season") == SEASON) & (F.col("event") == EVENT))
-)
+verify_df = spark.read.schema(BRONZE_SCHEMA).parquet(silver_output)
  
 print("Row counts by session_type (Silver — this event):")
 verify_df.groupBy("session_type").count().orderBy("session_type").show()

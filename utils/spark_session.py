@@ -1,5 +1,9 @@
 import os
+import sys
 from pyspark.sql import SparkSession
+
+os.environ["PYSPARK_PYTHON"] = sys.executable
+os.environ["PYSPARK_DRIVER_PYTHON"] = sys.executable
 
 def _is_databricks() -> bool:
     return "DATABRICKS_RUNTIME_VERSION" in os.environ

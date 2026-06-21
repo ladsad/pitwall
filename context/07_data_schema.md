@@ -38,11 +38,11 @@ All timedelta columns converted to float seconds before saving.
 | event | String | |
 | season | Integer | |
 | session_type | String | FP1/FP2/FP3/Q/SQ/S/R |
-| lap_time_delta | Float | Delta to session best (seconds) |
+| lap_time_delta | Float | Parquet to session best (seconds) |
 | consistency_score | Float | Std dev of lap times |
 | best_sector_combo | Float | Theoretical best lap |
 | tyre_deg_rate | Float | Pace loss per lap |
-| pace_vs_teammate | Float | Delta to teammate best |
+| pace_vs_teammate | Float | Parquet to teammate best |
 | pace_trend | Float | Last 2 rounds avg vs previous 4 |
 | race_position | Integer | **Label** — race finishing position that weekend |
 | recency_weight | Float | Computed by utils/weights.py |

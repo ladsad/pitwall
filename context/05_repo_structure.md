@@ -7,14 +7,14 @@ pitwall/
 │
 ├── notebooks/
 │   ├── 01_ingest.py                   # Pull FastF1 (all session types) → Bronze Parquet
-│   ├── 02_clean.py                    # Clean, cast types, filter outliers → Silver Delta
-│   ├── 03_features.py                 # Engineer per-driver per-session features → Gold Delta
+│   ├── 02_clean.py                    # Clean, cast types, filter outliers → Silver Parquet
+│   ├── 03_features.py                 # Engineer per-driver per-session features → Gold Parquet
 │   ├── 04_eda.py                      # Spark SQL analysis, correlation checks
 │   ├── 05_train.py                    # Dual-weighted MLlib Pipeline training → versioned model
 │   └── 06_predict.py                  # Predictions + confidence scores → predictions.json
 │
 ├── utils/
-│   ├── spark_session.py               # SparkSession helper (works locally + on Databricks)
+│   ├── spark_session.py               # SparkSession helper (works locally + on Local/GitHub Actions)
 │   ├── schema.py                      # All schema definitions (never infer schema)
 │   ├── transforms.py                  # Reusable DataFrame transformations
 │   └── weights.py                     # Recency decay + session type weight computation
@@ -36,4 +36,4 @@ pitwall/
 - Never use `spark.read.csv(..., inferSchema=True)` — always define schema in `utils/schema.py`
 - All notebooks are independently runnable — no hidden state dependencies between them
 - Model paths always include version: `/Volumes/workspace/default/pitwall/models/base_r05/`
-- `predictions.json` is the single handoff point between Databricks and the dashboard
+- `predictions.json` is the single handoff point between Local/GitHub Actions and the dashboard

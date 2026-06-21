@@ -110,7 +110,7 @@ print(f"  Steps   : {len(steps)}")
 print(f"{'='*60}")
 for i, (nb, desc) in enumerate(steps, 1):
     print(f"  {i}. {desc}")
-    print(f"     └─ {nb}")
+    print(f"     |-- {nb}")
 print()
 
 # ── RUN STEPS ─────────────────────────────────────────────────────────────────

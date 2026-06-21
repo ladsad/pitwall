@@ -29,6 +29,10 @@ spark = get_spark_session("pitwall-cleanup")
 
 bronze_path = str(RAW_PATH / f"season={SEASON}" / f"event={EVENT}")
 
+if not os.path.exists(bronze_path):
+    print(f"\n[SKIP] No data found at {bronze_path}. Exiting cleanly.")
+    sys.exit(0)
+
 raw_df = (
     spark.read
          .schema(BRONZE_SCHEMA)

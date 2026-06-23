@@ -176,21 +176,43 @@ def season_history(spark, predictions_path, features_path, season, model_version
                  .filter(
                      (F.col("season") == season)
                      & (F.col("session_type") == "R")
-                     & (F.col("race_position") == 1)
+                     & F.col("race_position").isNotNull()
                  )
-                 .select("event", "driver")
+                 .select("event", "driver", "race_position")
                  .distinct()
                  .withColumnRenamed("driver", "actual")
         )
     except Exception:
         return [], 0.0
 
+    # Calculate overall accuracy across all drivers
+    try:
+        all_preds = (
+            spark.read.parquet(str(predictions_path))
+                 .filter((F.col("season") == season) & mv_col)
+                 .select("event", F.col("driver").alias("pred_driver"), "predicted_position")
+        )
+        joined_all = all_preds.join(
+            actuals_df, 
+            (all_preds.event == actuals_df.event) & (all_preds.pred_driver == actuals_df.actual), 
+            how="inner"
+        )
+        total_evals = joined_all.count()
+        hits_all = joined_all.filter(F.abs(F.col("predicted_position") - F.col("race_position")) <= 2).count()
+        accuracy = round(hits_all / total_evals, 4) if total_evals > 0 else 0.0
+    except Exception as e:
+        print(f"Warning: Could not compute overall accuracy: {e}")
+        accuracy = 0.0
+
+    # For the history table, keep P1 predicted vs P1 actual
+    pred_p1 = history_df.filter(F.col("predicted_position") == 1 if "predicted_position" in history_df.columns else F.col("predicted").isNotNull()).select("event", "predicted", "round")
+    act_p1 = actuals_df.filter(F.col("race_position") == 1).select("event", "actual")
+    
     rows = (
-        history_df
-        .join(actuals_df, on="event", how="inner")
+        pred_p1
+        .join(act_p1, on="event", how="left")
         .withColumn("top3_hit", F.col("predicted") == F.col("actual"))
         .orderBy("round")
-        .select("event", "predicted", "actual", "top3_hit")
         .collect()
     )
 
@@ -200,12 +222,10 @@ def season_history(spark, predictions_path, features_path, season, model_version
             "predicted": row["predicted"],
             "actual":    row["actual"],
             "top3_hit":  bool(row["top3_hit"]),
+            "round":     row["round"],
         }
         for row in rows
     ]
-
-    hits     = sum(1 for h in history if h["top3_hit"])
-    accuracy = round(hits / len(history), 4) if history else 0.0
 
     return history, accuracy
 

@@ -1,202 +1,44 @@
 {
-  "model_version": "base_r05",
-  "generated_at": "2026-06-23T18:17:44.666934+00:00",
-  "event": "Monaco Grand Prix",
-  "round": 5,
+  "model_version": "base_r07",
+  "generated_at": "2026-06-23T21:44:03.269600+00:00",
+  "event": "Barcelona Grand Prix",
+  "round": 7,
   "season": 2026,
   "sessions_used": [
     "R",
-    "FP2",
     "FP1",
+    "FP2",
     "FP3",
     "Q"
   ],
   "season_accuracy": {
-    "top3_pct": 1.0,
-    "races": 1
+    "top3_pct": 0.2786,
+    "races": 6
   },
   "recency_lambda": 0.15,
   "predictions": [
     {
-      "driver": "ANT",
-      "team": "Mercedes",
-      "predicted_position": 1,
-      "win_probability": 0.2236,
-      "uncertainty": 0.0015,
-      "trend": {
-        "label": "flat",
-        "value": 0.0
-      },
-      "sessions": {
-        "FP1": {
-          "score": 2.32,
-          "weight": 0.15
-        },
-        "FP2": {
-          "score": 1.0,
-          "weight": 0.25
-        },
-        "FP3": {
-          "score": 1.18,
-          "weight": 0.35
-        },
-        "Q": {
-          "score": 1.01,
-          "weight": 0.7
-        },
-        "SQ": null,
-        "S": null
-      }
-    },
-    {
       "driver": "HAM",
       "team": "Ferrari",
-      "predicted_position": 2,
-      "win_probability": 0.0941,
-      "uncertainty": 0.0057,
-      "trend": {
-        "label": "flat",
-        "value": 0.0
-      },
-      "sessions": {
-        "FP1": {
-          "score": 1.0,
-          "weight": 0.15
-        },
-        "FP2": {
-          "score": 1.2,
-          "weight": 0.25
-        },
-        "FP3": {
-          "score": 1.88,
-          "weight": 0.35
-        },
-        "Q": {
-          "score": 0.98,
-          "weight": 0.7
-        },
-        "SQ": null,
-        "S": null
-      }
-    },
-    {
-      "driver": "RUS",
-      "team": "Mercedes",
-      "predicted_position": 3,
-      "win_probability": 0.0725,
-      "uncertainty": 0.0005,
-      "trend": {
-        "label": "flat",
-        "value": 0.0
-      },
-      "sessions": {
-        "FP1": {
-          "score": 1.48,
-          "weight": 0.15
-        },
-        "FP2": {
-          "score": 2.03,
-          "weight": 0.25
-        },
-        "FP3": {
-          "score": 1.58,
-          "weight": 0.35
-        },
-        "Q": {
-          "score": 1.35,
-          "weight": 0.7
-        },
-        "SQ": null,
-        "S": null
-      }
-    },
-    {
-      "driver": "VER",
-      "team": "Red Bull Racing",
-      "predicted_position": 4,
-      "win_probability": 0.0659,
-      "uncertainty": 0.0005,
-      "trend": {
-        "label": "flat",
-        "value": null
-      },
-      "sessions": {
-        "FP1": {
-          "score": 1.56,
-          "weight": 0.15
-        },
-        "FP2": {
-          "score": 2.35,
-          "weight": 0.25
-        },
-        "FP3": {
-          "score": 0.37,
-          "weight": 0.35
-        },
-        "Q": {
-          "score": 1.47,
-          "weight": 0.7
-        },
-        "SQ": null,
-        "S": null
-      }
-    },
-    {
-      "driver": "GAS",
-      "team": "Alpine",
-      "predicted_position": 5,
-      "win_probability": 0.0633,
-      "uncertainty": 0.0006,
-      "trend": {
-        "label": "flat",
-        "value": 0.0
-      },
-      "sessions": {
-        "FP1": {
-          "score": 1.22,
-          "weight": 0.15
-        },
-        "FP2": {
-          "score": 1.68,
-          "weight": 0.25
-        },
-        "FP3": {
-          "score": 0.67,
-          "weight": 0.35
-        },
-        "Q": {
-          "score": 1.18,
-          "weight": 0.7
-        },
-        "SQ": null,
-        "S": null
-      }
-    },
-    {
-      "driver": "LEC",
-      "team": "Ferrari",
-      "predicted_position": 6,
-      "win_probability": 0.0622,
+      "predicted_position": 1,
+      "win_probability": 0.1823,
       "uncertainty": 0.0004,
       "trend": {
-        "label": "flat",
-        "value": 0.0
+        "label": "down",
+        "value": 0.5428
       },
       "sessions": {
-        "FP1": {
-          "score": 1.28,
-          "weight": 0.15
-        },
+        "FP1": null,
         "FP2": {
-          "score": 1.85,
+          "score": 0.67,
           "weight": 0.25
         },
         "FP3": {
-          "score": 1.82,
+          "score": 1.12,
           "weight": 0.35
         },
         "Q": {
-          "score": 1.62,
+          "score": 0.63,
           "weight": 0.7
         },
         "SQ": null,
@@ -205,29 +47,60 @@
     },
     {
       "driver": "PIA",
-      "team": "McLaren",
-      "predicted_position": 7,
-      "win_probability": 0.0611,
-      "uncertainty": 0.0004,
+      "team": "",
+      "predicted_position": 2,
+      "win_probability": 0.112,
+      "uncertainty": 0.0002,
       "trend": {
-        "label": "flat",
-        "value": 0.0
+        "label": "down",
+        "value": 0.4192
       },
       "sessions": {
         "FP1": {
-          "score": 1.16,
+          "score": 1.78,
           "weight": 0.15
         },
         "FP2": {
-          "score": 1.45,
+          "score": 0.52,
           "weight": 0.25
         },
         "FP3": {
-          "score": 0.53,
+          "score": 0.82,
           "weight": 0.35
         },
         "Q": {
-          "score": 0.85,
+          "score": 0.56,
+          "weight": 0.7
+        },
+        "SQ": null,
+        "S": null
+      }
+    },
+    {
+      "driver": "VER",
+      "team": "",
+      "predicted_position": 3,
+      "win_probability": 0.0886,
+      "uncertainty": 0.0002,
+      "trend": {
+        "label": "down",
+        "value": 0.3753
+      },
+      "sessions": {
+        "FP1": {
+          "score": 1.7,
+          "weight": 0.15
+        },
+        "FP2": {
+          "score": 0.57,
+          "weight": 0.25
+        },
+        "FP3": {
+          "score": 0.41,
+          "weight": 0.35
+        },
+        "Q": {
+          "score": 0.53,
           "weight": 0.7
         },
         "SQ": null,
@@ -237,28 +110,25 @@
     {
       "driver": "HAD",
       "team": "Red Bull Racing",
-      "predicted_position": 8,
-      "win_probability": 0.0493,
-      "uncertainty": 0.0004,
+      "predicted_position": 4,
+      "win_probability": 0.0656,
+      "uncertainty": 0.0014,
       "trend": {
-        "label": "flat",
-        "value": 0.0
+        "label": "down",
+        "value": 0.8907
       },
       "sessions": {
-        "FP1": {
-          "score": 0.37,
-          "weight": 0.15
-        },
+        "FP1": null,
         "FP2": {
-          "score": 1.27,
+          "score": 1.16,
           "weight": 0.25
         },
         "FP3": {
-          "score": 1.13,
+          "score": 0.75,
           "weight": 0.35
         },
         "Q": {
-          "score": 1.17,
+          "score": 0.65,
           "weight": 0.7
         },
         "SQ": null,
@@ -266,26 +136,82 @@
       }
     },
     {
-      "driver": "LAW",
-      "team": "Racing Bulls",
-      "predicted_position": 9,
-      "win_probability": 0.033,
-      "uncertainty": 0.0002,
+      "driver": "RUS",
+      "team": "",
+      "predicted_position": 5,
+      "win_probability": 0.0342,
+      "uncertainty": 0.0001,
       "trend": {
         "label": "flat",
-        "value": 0.0
+        "value": -0.0674
       },
       "sessions": {
         "FP1": {
-          "score": 1.3,
+          "score": 3.14,
           "weight": 0.15
         },
         "FP2": {
-          "score": 0.86,
+          "score": 0.34,
           "weight": 0.25
         },
         "FP3": {
+          "score": 0.29,
+          "weight": 0.35
+        },
+        "Q": {
+          "score": 0.51,
+          "weight": 0.7
+        },
+        "SQ": null,
+        "S": null
+      }
+    },
+    {
+      "driver": "HUL",
+      "team": "Audi",
+      "predicted_position": 6,
+      "win_probability": 0.0334,
+      "uncertainty": 0.0005,
+      "trend": {
+        "label": "up",
+        "value": -0.437
+      },
+      "sessions": {
+        "FP1": null,
+        "FP2": {
+          "score": 0.81,
+          "weight": 0.25
+        },
+        "FP3": {
+          "score": 1.68,
+          "weight": 0.35
+        },
+        "Q": {
+          "score": 0.71,
+          "weight": 0.7
+        },
+        "SQ": null,
+        "S": null
+      }
+    },
+    {
+      "driver": "NOR",
+      "team": "McLaren",
+      "predicted_position": 7,
+      "win_probability": 0.0324,
+      "uncertainty": 0.0005,
+      "trend": {
+        "label": "up",
+        "value": -0.3283
+      },
+      "sessions": {
+        "FP1": null,
+        "FP2": {
           "score": 1.33,
+          "weight": 0.25
+        },
+        "FP3": {
+          "score": 1.76,
           "weight": 0.35
         },
         "Q": {
@@ -297,61 +223,30 @@
       }
     },
     {
-      "driver": "HUL",
-      "team": "Audi",
-      "predicted_position": 10,
+      "driver": "COL",
+      "team": "Alpine",
+      "predicted_position": 8,
       "win_probability": 0.0305,
-      "uncertainty": 0.0005,
+      "uncertainty": 0.0001,
       "trend": {
-        "label": "flat",
-        "value": 0.0
+        "label": "up",
+        "value": -0.2322
       },
       "sessions": {
         "FP1": {
-          "score": 1.19,
+          "score": 2.14,
           "weight": 0.15
         },
         "FP2": {
-          "score": 2.07,
+          "score": 0.63,
           "weight": 0.25
         },
         "FP3": {
-          "score": 0.45,
+          "score": 1.27,
           "weight": 0.35
         },
         "Q": {
-          "score": 0.43,
-          "weight": 0.7
-        },
-        "SQ": null,
-        "S": null
-      }
-    },
-    {
-      "driver": "BEA",
-      "team": "Haas F1 Team",
-      "predicted_position": 11,
-      "win_probability": 0.027,
-      "uncertainty": 0.0005,
-      "trend": {
-        "label": "flat",
-        "value": 0.0
-      },
-      "sessions": {
-        "FP1": {
-          "score": 0.9,
-          "weight": 0.15
-        },
-        "FP2": {
-          "score": 1.55,
-          "weight": 0.25
-        },
-        "FP3": {
-          "score": 0.6,
-          "weight": 0.35
-        },
-        "Q": {
-          "score": 0.44,
+          "score": 0.65,
           "weight": 0.7
         },
         "SQ": null,
@@ -361,55 +256,24 @@
     {
       "driver": "BOR",
       "team": "Audi",
-      "predicted_position": 12,
-      "win_probability": 0.0268,
-      "uncertainty": 0.0002,
+      "predicted_position": 9,
+      "win_probability": 0.0278,
+      "uncertainty": 0.0001,
       "trend": {
-        "label": "flat",
-        "value": 0.0
+        "label": "up",
+        "value": -0.3719
       },
       "sessions": {
         "FP1": {
-          "score": 1.53,
+          "score": 1.78,
           "weight": 0.15
         },
         "FP2": {
-          "score": 1.33,
+          "score": 0.92,
           "weight": 0.25
         },
         "FP3": {
-          "score": 1.0,
-          "weight": 0.35
-        },
-        "Q": {
-          "score": 0.21,
-          "weight": 0.7
-        },
-        "SQ": null,
-        "S": null
-      }
-    },
-    {
-      "driver": "SAI",
-      "team": "Williams",
-      "predicted_position": 13,
-      "win_probability": 0.026,
-      "uncertainty": 0.0002,
-      "trend": {
-        "label": "flat",
-        "value": 0.0
-      },
-      "sessions": {
-        "FP1": {
-          "score": 1.22,
-          "weight": 0.15
-        },
-        "FP2": {
-          "score": 1.43,
-          "weight": 0.25
-        },
-        "FP3": {
-          "score": 0.61,
+          "score": 0.83,
           "weight": 0.35
         },
         "Q": {
@@ -421,26 +285,346 @@
       }
     },
     {
-      "driver": "NOR",
-      "team": "McLaren",
-      "predicted_position": 14,
-      "win_probability": 0.0256,
-      "uncertainty": 0.0014,
+      "driver": "LIN",
+      "team": "Racing Bulls",
+      "predicted_position": 10,
+      "win_probability": 0.0277,
+      "uncertainty": 0.0001,
       "trend": {
-        "label": "flat",
-        "value": 0.0
+        "label": "down",
+        "value": 0.1914
       },
       "sessions": {
         "FP1": {
-          "score": 1.71,
+          "score": 0.99,
           "weight": 0.15
         },
         "FP2": {
-          "score": 0.67,
+          "score": 0.57,
           "weight": 0.25
         },
         "FP3": {
+          "score": 0.39,
+          "weight": 0.35
+        },
+        "Q": {
+          "score": 0.29,
+          "weight": 0.7
+        },
+        "SQ": null,
+        "S": null
+      }
+    },
+    {
+      "driver": "ALB",
+      "team": "Williams",
+      "predicted_position": 11,
+      "win_probability": 0.0231,
+      "uncertainty": 0.0,
+      "trend": {
+        "label": "up",
+        "value": -0.5321
+      },
+      "sessions": {
+        "FP1": null,
+        "FP2": {
+          "score": 0.4,
+          "weight": 0.25
+        },
+        "FP3": {
+          "score": 0.5,
+          "weight": 0.35
+        },
+        "Q": {
+          "score": 0.41,
+          "weight": 0.7
+        },
+        "SQ": null,
+        "S": null
+      }
+    },
+    {
+      "driver": "GAS",
+      "team": "Alpine",
+      "predicted_position": 12,
+      "win_probability": 0.0228,
+      "uncertainty": 0.0,
+      "trend": {
+        "label": "down",
+        "value": 1.1367
+      },
+      "sessions": {
+        "FP1": {
+          "score": 1.02,
+          "weight": 0.15
+        },
+        "FP2": {
+          "score": 0.73,
+          "weight": 0.25
+        },
+        "FP3": {
+          "score": 0.5,
+          "weight": 0.35
+        },
+        "Q": {
+          "score": 0.63,
+          "weight": 0.7
+        },
+        "SQ": null,
+        "S": null
+      }
+    },
+    {
+      "driver": "PIA",
+      "team": "McLaren",
+      "predicted_position": 13,
+      "win_probability": 0.0218,
+      "uncertainty": 0.0002,
+      "trend": {
+        "label": "down",
+        "value": 0.4192
+      },
+      "sessions": {
+        "FP1": {
+          "score": 1.78,
+          "weight": 0.15
+        },
+        "FP2": {
+          "score": 0.52,
+          "weight": 0.25
+        },
+        "FP3": {
+          "score": 0.82,
+          "weight": 0.35
+        },
+        "Q": {
+          "score": 0.56,
+          "weight": 0.7
+        },
+        "SQ": null,
+        "S": null
+      }
+    },
+    {
+      "driver": "LAW",
+      "team": "Racing Bulls",
+      "predicted_position": 14,
+      "win_probability": 0.0217,
+      "uncertainty": 0.0,
+      "trend": {
+        "label": "down",
+        "value": 0.6397
+      },
+      "sessions": {
+        "FP1": {
+          "score": 1.06,
+          "weight": 0.15
+        },
+        "FP2": {
+          "score": 0.5,
+          "weight": 0.25
+        },
+        "FP3": {
+          "score": 0.22,
+          "weight": 0.35
+        },
+        "Q": {
           "score": 0.66,
+          "weight": 0.7
+        },
+        "SQ": null,
+        "S": null
+      }
+    },
+    {
+      "driver": "VER",
+      "team": "Red Bull Racing",
+      "predicted_position": 15,
+      "win_probability": 0.021,
+      "uncertainty": 0.0002,
+      "trend": {
+        "label": "down",
+        "value": 0.3753
+      },
+      "sessions": {
+        "FP1": {
+          "score": 1.7,
+          "weight": 0.15
+        },
+        "FP2": {
+          "score": 0.57,
+          "weight": 0.25
+        },
+        "FP3": {
+          "score": 0.41,
+          "weight": 0.35
+        },
+        "Q": {
+          "score": 0.53,
+          "weight": 0.7
+        },
+        "SQ": null,
+        "S": null
+      }
+    },
+    {
+      "driver": "LEC",
+      "team": "Ferrari",
+      "predicted_position": 16,
+      "win_probability": 0.0206,
+      "uncertainty": 0.0,
+      "trend": {
+        "label": "flat",
+        "value": -0.0934
+      },
+      "sessions": {
+        "FP1": {
+          "score": 1.7,
+          "weight": 0.15
+        },
+        "FP2": {
+          "score": 0.85,
+          "weight": 0.25
+        },
+        "FP3": {
+          "score": 0.71,
+          "weight": 0.35
+        },
+        "Q": {
+          "score": 0.34,
+          "weight": 0.7
+        },
+        "SQ": null,
+        "S": null
+      }
+    },
+    {
+      "driver": "LEC",
+      "team": "",
+      "predicted_position": 17,
+      "win_probability": 0.018,
+      "uncertainty": 0.0,
+      "trend": {
+        "label": "flat",
+        "value": -0.0934
+      },
+      "sessions": {
+        "FP1": {
+          "score": 1.7,
+          "weight": 0.15
+        },
+        "FP2": {
+          "score": 0.85,
+          "weight": 0.25
+        },
+        "FP3": {
+          "score": 0.71,
+          "weight": 0.35
+        },
+        "Q": {
+          "score": 0.34,
+          "weight": 0.7
+        },
+        "SQ": null,
+        "S": null
+      }
+    },
+    {
+      "driver": "BEG",
+      "team": "",
+      "predicted_position": 18,
+      "win_probability": 0.0163,
+      "uncertainty": 0.0,
+      "trend": {
+        "label": "flat",
+        "value": null
+      },
+      "sessions": {
+        "FP1": {
+          "score": 2.41,
+          "weight": 0.15
+        },
+        "FP2": null,
+        "FP3": null,
+        "Q": null,
+        "SQ": null,
+        "S": null
+      }
+    },
+    {
+      "driver": "FOR",
+      "team": "",
+      "predicted_position": 19,
+      "win_probability": 0.0159,
+      "uncertainty": 0.0003,
+      "trend": {
+        "label": "flat",
+        "value": null
+      },
+      "sessions": {
+        "FP1": {
+          "score": 1.55,
+          "weight": 0.15
+        },
+        "FP2": null,
+        "FP3": null,
+        "Q": null,
+        "SQ": null,
+        "S": null
+      }
+    },
+    {
+      "driver": "OCO",
+      "team": "Haas F1 Team",
+      "predicted_position": 20,
+      "win_probability": 0.0157,
+      "uncertainty": 0.0,
+      "trend": {
+        "label": "up",
+        "value": -0.4128
+      },
+      "sessions": {
+        "FP1": {
+          "score": 1.81,
+          "weight": 0.15
+        },
+        "FP2": {
+          "score": 1.04,
+          "weight": 0.25
+        },
+        "FP3": {
+          "score": 0.57,
+          "weight": 0.35
+        },
+        "Q": {
+          "score": 0.72,
+          "weight": 0.7
+        },
+        "SQ": null,
+        "S": null
+      }
+    },
+    {
+      "driver": "BOT",
+      "team": "",
+      "predicted_position": 21,
+      "win_probability": 0.015,
+      "uncertainty": 0.0,
+      "trend": {
+        "label": "flat",
+        "value": null
+      },
+      "sessions": {
+        "FP1": {
+          "score": 1.37,
+          "weight": 0.15
+        },
+        "FP2": {
+          "score": 0.15,
+          "weight": 0.25
+        },
+        "FP3": {
+          "score": 0.13,
           "weight": 0.35
         },
         "Q": {
@@ -452,30 +636,52 @@
       }
     },
     {
-      "driver": "ALB",
-      "team": "Williams",
-      "predicted_position": 15,
-      "win_probability": 0.0247,
-      "uncertainty": 0.0002,
+      "driver": "ARO",
+      "team": "",
+      "predicted_position": 22,
+      "win_probability": 0.0142,
+      "uncertainty": 0.0,
       "trend": {
         "label": "flat",
-        "value": 0.0
+        "value": null
       },
       "sessions": {
         "FP1": {
-          "score": 1.71,
+          "score": 2.43,
+          "weight": 0.15
+        },
+        "FP2": null,
+        "FP3": null,
+        "Q": null,
+        "SQ": null,
+        "S": null
+      }
+    },
+    {
+      "driver": "BEA",
+      "team": "",
+      "predicted_position": 23,
+      "win_probability": 0.0137,
+      "uncertainty": 0.0,
+      "trend": {
+        "label": "up",
+        "value": -0.4964
+      },
+      "sessions": {
+        "FP1": {
+          "score": 1.85,
           "weight": 0.15
         },
         "FP2": {
-          "score": 1.32,
+          "score": 0.98,
           "weight": 0.25
         },
         "FP3": {
-          "score": 0.36,
+          "score": 0.1,
           "weight": 0.35
         },
         "Q": {
-          "score": 1.26,
+          "score": 0.84,
           "weight": 0.7
         },
         "SQ": null,
@@ -484,60 +690,29 @@
     },
     {
       "driver": "COL",
-      "team": "Alpine",
-      "predicted_position": 16,
-      "win_probability": 0.0241,
-      "uncertainty": 0.0002,
+      "team": "",
+      "predicted_position": 24,
+      "win_probability": 0.0126,
+      "uncertainty": 0.0001,
       "trend": {
-        "label": "flat",
-        "value": 0.0
+        "label": "up",
+        "value": -0.2322
       },
       "sessions": {
         "FP1": {
-          "score": 1.74,
+          "score": 2.14,
           "weight": 0.15
         },
         "FP2": {
-          "score": 1.41,
-          "weight": 0.25
-        },
-        "FP3": {
           "score": 0.63,
-          "weight": 0.35
-        },
-        "Q": {
-          "score": 1.04,
-          "weight": 0.7
-        },
-        "SQ": null,
-        "S": null
-      }
-    },
-    {
-      "driver": "LIN",
-      "team": "Racing Bulls",
-      "predicted_position": 17,
-      "win_probability": 0.0235,
-      "uncertainty": 0.0002,
-      "trend": {
-        "label": "flat",
-        "value": 0.0
-      },
-      "sessions": {
-        "FP1": {
-          "score": 0.93,
-          "weight": 0.15
-        },
-        "FP2": {
-          "score": 1.18,
           "weight": 0.25
         },
         "FP3": {
-          "score": 0.37,
+          "score": 1.27,
           "weight": 0.35
         },
         "Q": {
-          "score": 0.62,
+          "score": 0.65,
           "weight": 0.7
         },
         "SQ": null,
@@ -546,29 +721,150 @@
     },
     {
       "driver": "OCO",
-      "team": "Haas F1 Team",
-      "predicted_position": 18,
-      "win_probability": 0.0227,
-      "uncertainty": 0.0001,
+      "team": "",
+      "predicted_position": 25,
+      "win_probability": 0.0118,
+      "uncertainty": 0.0,
       "trend": {
-        "label": "flat",
-        "value": 0.0
+        "label": "up",
+        "value": -0.4128
       },
       "sessions": {
         "FP1": {
-          "score": 1.28,
+          "score": 1.81,
           "weight": 0.15
         },
         "FP2": {
-          "score": 1.19,
+          "score": 1.04,
           "weight": 0.25
         },
         "FP3": {
-          "score": 0.95,
+          "score": 0.57,
           "weight": 0.35
         },
         "Q": {
-          "score": 0.62,
+          "score": 0.72,
+          "weight": 0.7
+        },
+        "SQ": null,
+        "S": null
+      }
+    },
+    {
+      "driver": "BOR",
+      "team": "",
+      "predicted_position": 26,
+      "win_probability": 0.0113,
+      "uncertainty": 0.0001,
+      "trend": {
+        "label": "up",
+        "value": -0.3719
+      },
+      "sessions": {
+        "FP1": {
+          "score": 1.78,
+          "weight": 0.15
+        },
+        "FP2": {
+          "score": 0.92,
+          "weight": 0.25
+        },
+        "FP3": {
+          "score": 0.83,
+          "weight": 0.35
+        },
+        "Q": {
+          "score": 0.42,
+          "weight": 0.7
+        },
+        "SQ": null,
+        "S": null
+      }
+    },
+    {
+      "driver": "ANT",
+      "team": "Mercedes",
+      "predicted_position": 27,
+      "win_probability": 0.0111,
+      "uncertainty": 0.0,
+      "trend": {
+        "label": "down",
+        "value": 1.0466
+      },
+      "sessions": {
+        "FP1": null,
+        "FP2": {
+          "score": 0.65,
+          "weight": 0.25
+        },
+        "FP3": {
+          "score": 0.01,
+          "weight": 0.35
+        },
+        "Q": {
+          "score": 0.42,
+          "weight": 0.7
+        },
+        "SQ": null,
+        "S": null
+      }
+    },
+    {
+      "driver": "RUS",
+      "team": "Mercedes",
+      "predicted_position": 28,
+      "win_probability": 0.0094,
+      "uncertainty": 0.0001,
+      "trend": {
+        "label": "flat",
+        "value": -0.0674
+      },
+      "sessions": {
+        "FP1": {
+          "score": 3.14,
+          "weight": 0.15
+        },
+        "FP2": {
+          "score": 0.34,
+          "weight": 0.25
+        },
+        "FP3": {
+          "score": 0.29,
+          "weight": 0.35
+        },
+        "Q": {
+          "score": 0.51,
+          "weight": 0.7
+        },
+        "SQ": null,
+        "S": null
+      }
+    },
+    {
+      "driver": "LAW",
+      "team": "",
+      "predicted_position": 29,
+      "win_probability": 0.0086,
+      "uncertainty": 0.0,
+      "trend": {
+        "label": "down",
+        "value": 0.6397
+      },
+      "sessions": {
+        "FP1": {
+          "score": 1.06,
+          "weight": 0.15
+        },
+        "FP2": {
+          "score": 0.5,
+          "weight": 0.25
+        },
+        "FP3": {
+          "score": 0.22,
+          "weight": 0.35
+        },
+        "Q": {
+          "score": 0.66,
           "weight": 0.7
         },
         "SQ": null,
@@ -578,59 +874,25 @@
     {
       "driver": "PER",
       "team": "Cadillac",
-      "predicted_position": 19,
-      "win_probability": 0.0204,
-      "uncertainty": 0.0001,
+      "predicted_position": 30,
+      "win_probability": 0.0076,
+      "uncertainty": 0.0,
       "trend": {
-        "label": "flat",
-        "value": 0.0
+        "label": "up",
+        "value": -0.1617
       },
       "sessions": {
-        "FP1": {
-          "score": 0.91,
-          "weight": 0.15
-        },
+        "FP1": null,
         "FP2": {
-          "score": 1.35,
+          "score": 0.61,
           "weight": 0.25
         },
         "FP3": {
-          "score": 0.98,
+          "score": 1.0,
           "weight": 0.35
         },
         "Q": {
-          "score": 1.1,
-          "weight": 0.7
-        },
-        "SQ": null,
-        "S": null
-      }
-    },
-    {
-      "driver": "ALO",
-      "team": "Aston Martin",
-      "predicted_position": 20,
-      "win_probability": 0.0153,
-      "uncertainty": 0.0001,
-      "trend": {
-        "label": "flat",
-        "value": 0.0
-      },
-      "sessions": {
-        "FP1": {
-          "score": 1.22,
-          "weight": 0.15
-        },
-        "FP2": {
-          "score": 1.05,
-          "weight": 0.25
-        },
-        "FP3": {
-          "score": 0.78,
-          "weight": 0.35
-        },
-        "Q": {
-          "score": 0.47,
+          "score": 0.29,
           "weight": 0.7
         },
         "SQ": null,
@@ -640,8 +902,8 @@
     {
       "driver": "BOT",
       "team": "Cadillac",
-      "predicted_position": 21,
-      "win_probability": 0.0072,
+      "predicted_position": 31,
+      "win_probability": 0.007,
       "uncertainty": 0.0,
       "trend": {
         "label": "flat",
@@ -649,19 +911,81 @@
       },
       "sessions": {
         "FP1": {
-          "score": 0.54,
+          "score": 1.37,
           "weight": 0.15
         },
         "FP2": {
-          "score": 0.8,
+          "score": 0.15,
           "weight": 0.25
         },
         "FP3": {
-          "score": 0.96,
+          "score": 0.13,
           "weight": 0.35
         },
         "Q": {
-          "score": 0.37,
+          "score": 0.61,
+          "weight": 0.7
+        },
+        "SQ": null,
+        "S": null
+      }
+    },
+    {
+      "driver": "LIN",
+      "team": "",
+      "predicted_position": 32,
+      "win_probability": 0.0062,
+      "uncertainty": 0.0001,
+      "trend": {
+        "label": "down",
+        "value": 0.1914
+      },
+      "sessions": {
+        "FP1": {
+          "score": 0.99,
+          "weight": 0.15
+        },
+        "FP2": {
+          "score": 0.57,
+          "weight": 0.25
+        },
+        "FP3": {
+          "score": 0.39,
+          "weight": 0.35
+        },
+        "Q": {
+          "score": 0.29,
+          "weight": 0.7
+        },
+        "SQ": null,
+        "S": null
+      }
+    },
+    {
+      "driver": "BEA",
+      "team": "Haas F1 Team",
+      "predicted_position": 33,
+      "win_probability": 0.0058,
+      "uncertainty": 0.0,
+      "trend": {
+        "label": "up",
+        "value": -0.4964
+      },
+      "sessions": {
+        "FP1": {
+          "score": 1.85,
+          "weight": 0.15
+        },
+        "FP2": {
+          "score": 0.98,
+          "weight": 0.25
+        },
+        "FP3": {
+          "score": 0.1,
+          "weight": 0.35
+        },
+        "Q": {
+          "score": 0.84,
           "weight": 0.7
         },
         "SQ": null,
@@ -671,16 +995,47 @@
     {
       "driver": "STR",
       "team": "Aston Martin",
-      "predicted_position": 22,
-      "win_probability": 0.0011,
-      "uncertainty": 0.0,
+      "predicted_position": 34,
+      "win_probability": 0.0055,
+      "uncertainty": 0.0006,
       "trend": {
         "label": "flat",
         "value": null
       },
       "sessions": {
         "FP1": {
-          "score": 0.79,
+          "score": 0.48,
+          "weight": 0.15
+        },
+        "FP2": {
+          "score": 0.68,
+          "weight": 0.25
+        },
+        "FP3": {
+          "score": 0.37,
+          "weight": 0.35
+        },
+        "Q": {
+          "score": 0.0,
+          "weight": 0.7
+        },
+        "SQ": null,
+        "S": null
+      }
+    },
+    {
+      "driver": "GAS",
+      "team": "",
+      "predicted_position": 35,
+      "win_probability": 0.0054,
+      "uncertainty": 0.0,
+      "trend": {
+        "label": "down",
+        "value": 1.1367
+      },
+      "sessions": {
+        "FP1": {
+          "score": 1.02,
           "weight": 0.15
         },
         "FP2": {
@@ -688,11 +1043,232 @@
           "weight": 0.25
         },
         "FP3": {
-          "score": 1.14,
+          "score": 0.5,
           "weight": 0.35
         },
         "Q": {
-          "score": 0.45,
+          "score": 0.63,
+          "weight": 0.7
+        },
+        "SQ": null,
+        "S": null
+      }
+    },
+    {
+      "driver": "SAI",
+      "team": "Williams",
+      "predicted_position": 36,
+      "win_probability": 0.0042,
+      "uncertainty": 0.0,
+      "trend": {
+        "label": "up",
+        "value": -0.6616
+      },
+      "sessions": {
+        "FP1": {
+          "score": 1.16,
+          "weight": 0.15
+        },
+        "FP2": {
+          "score": 0.87,
+          "weight": 0.25
+        },
+        "FP3": {
+          "score": 0.39,
+          "weight": 0.35
+        },
+        "Q": {
+          "score": 1.0,
+          "weight": 0.7
+        },
+        "SQ": null,
+        "S": null
+      }
+    },
+    {
+      "driver": "HER",
+      "team": "",
+      "predicted_position": 37,
+      "win_probability": 0.0041,
+      "uncertainty": 0.0,
+      "trend": {
+        "label": "flat",
+        "value": null
+      },
+      "sessions": {
+        "FP1": {
+          "score": 0.23,
+          "weight": 0.15
+        },
+        "FP2": null,
+        "FP3": null,
+        "Q": null,
+        "SQ": null,
+        "S": null
+      }
+    },
+    {
+      "driver": "VES",
+      "team": "",
+      "predicted_position": 38,
+      "win_probability": 0.004,
+      "uncertainty": 0.0,
+      "trend": {
+        "label": "flat",
+        "value": null
+      },
+      "sessions": {
+        "FP1": {
+          "score": 0.6,
+          "weight": 0.15
+        },
+        "FP2": null,
+        "FP3": null,
+        "Q": null,
+        "SQ": null,
+        "S": null
+      }
+    },
+    {
+      "driver": "IWA",
+      "team": "",
+      "predicted_position": 39,
+      "win_probability": 0.004,
+      "uncertainty": 0.0,
+      "trend": {
+        "label": "flat",
+        "value": null
+      },
+      "sessions": {
+        "FP1": {
+          "score": 1.22,
+          "weight": 0.15
+        },
+        "FP2": null,
+        "FP3": null,
+        "Q": null,
+        "SQ": null,
+        "S": null
+      }
+    },
+    {
+      "driver": "ALO",
+      "team": "Aston Martin",
+      "predicted_position": 40,
+      "win_probability": 0.0039,
+      "uncertainty": 0.0,
+      "trend": {
+        "label": "up",
+        "value": -1.0673
+      },
+      "sessions": {
+        "FP1": {
+          "score": 0.94,
+          "weight": 0.15
+        },
+        "FP2": {
+          "score": 0.43,
+          "weight": 0.25
+        },
+        "FP3": {
+          "score": 0.33,
+          "weight": 0.35
+        },
+        "Q": {
+          "score": 0.24,
+          "weight": 0.7
+        },
+        "SQ": null,
+        "S": null
+      }
+    },
+    {
+      "driver": "STR",
+      "team": "",
+      "predicted_position": 41,
+      "win_probability": 0.0012,
+      "uncertainty": 0.0006,
+      "trend": {
+        "label": "flat",
+        "value": null
+      },
+      "sessions": {
+        "FP1": {
+          "score": 0.48,
+          "weight": 0.15
+        },
+        "FP2": {
+          "score": 0.68,
+          "weight": 0.25
+        },
+        "FP3": {
+          "score": 0.37,
+          "weight": 0.35
+        },
+        "Q": {
+          "score": 0.0,
+          "weight": 0.7
+        },
+        "SQ": null,
+        "S": null
+      }
+    },
+    {
+      "driver": "SAI",
+      "team": "",
+      "predicted_position": 42,
+      "win_probability": 0.001,
+      "uncertainty": 0.0,
+      "trend": {
+        "label": "up",
+        "value": -0.6616
+      },
+      "sessions": {
+        "FP1": {
+          "score": 1.16,
+          "weight": 0.15
+        },
+        "FP2": {
+          "score": 0.87,
+          "weight": 0.25
+        },
+        "FP3": {
+          "score": 0.39,
+          "weight": 0.35
+        },
+        "Q": {
+          "score": 1.0,
+          "weight": 0.7
+        },
+        "SQ": null,
+        "S": null
+      }
+    },
+    {
+      "driver": "ALO",
+      "team": "",
+      "predicted_position": 43,
+      "win_probability": 0.001,
+      "uncertainty": 0.0,
+      "trend": {
+        "label": "up",
+        "value": -1.0673
+      },
+      "sessions": {
+        "FP1": {
+          "score": 0.94,
+          "weight": 0.15
+        },
+        "FP2": {
+          "score": 0.43,
+          "weight": 0.25
+        },
+        "FP3": {
+          "score": 0.33,
+          "weight": 0.35
+        },
+        "Q": {
+          "score": 0.24,
           "weight": 0.7
         },
         "SQ": null,
@@ -702,36 +1278,72 @@
   ],
   "feature_importance": [
     {
+      "feature": "pace_trend",
+      "importance": 0.3489
+    },
+    {
       "feature": "consistency_score",
-      "importance": 0.298
+      "importance": 0.2358
     },
     {
       "feature": "pace_vs_teammate",
-      "importance": 0.2855
+      "importance": 0.1894
     },
     {
       "feature": "best_sector_combo",
-      "importance": 0.2794
+      "importance": 0.1794
     },
     {
       "feature": "tyre_deg_rate",
-      "importance": 0.0898
+      "importance": 0.0383
     },
     {
       "feature": "lap_time_delta",
-      "importance": 0.0352
-    },
-    {
-      "feature": "pace_trend",
-      "importance": 0.0
+      "importance": 0.0027
     }
   ],
   "history": [
     {
+      "event": "Australian Grand Prix",
+      "predicted": "RUS",
+      "actual": "RUS",
+      "top3_hit": true,
+      "round": 1
+    },
+    {
+      "event": "Chinese Grand Prix",
+      "predicted": "ANT",
+      "actual": "ANT",
+      "top3_hit": true,
+      "round": 2
+    },
+    {
+      "event": "Japanese Grand Prix",
+      "predicted": "ANT",
+      "actual": "ANT",
+      "top3_hit": true,
+      "round": 3
+    },
+    {
+      "event": "Miami Grand Prix",
+      "predicted": "ANT",
+      "actual": "ANT",
+      "top3_hit": true,
+      "round": 4
+    },
+    {
+      "event": "Canadian Grand Prix",
+      "predicted": "ANT",
+      "actual": "ANT",
+      "top3_hit": true,
+      "round": 5
+    },
+    {
       "event": "Monaco Grand Prix",
       "predicted": "ANT",
       "actual": "ANT",
-      "top3_hit": true
+      "top3_hit": true,
+      "round": 6
     }
   ]
 }

@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS predictions (
     predicted_position INT,
     win_probability    REAL,
     uncertainty        REAL,
+    sessions           JSONB,
+    trend              JSONB,
     generated_at       TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(season, event, driver, model_version)
 );

@@ -223,6 +223,10 @@ history, season_acc = season_history(
 
 # ── WRITE PREDICTIONS PARQUET ─────────────────────────────────────────────────
 
+import json
+_sessions_udf = F.udf(lambda d: json.dumps(sess_scores.get(d, {})), "string")
+_trend_udf    = F.udf(lambda d: json.dumps(trend.get(d, {"label": "flat", "value": None})), "string")
+
 output_df = final_preds.select(
     F.col("driver").cast("string"),
     F.col("team").cast("string"),
@@ -233,6 +237,8 @@ output_df = final_preds.select(
     F.col("predicted_position").cast("integer"),
     F.col("win_probability").cast("float"),
     F.col("uncertainty").cast("float"),
+    _sessions_udf(F.col("driver")).alias("sessions"),
+    _trend_udf(F.col("driver")).alias("trend"),
     F.lit(datetime.now(timezone.utc).isoformat()).cast("string").alias("generated_at"),
 )
 
@@ -244,6 +250,9 @@ print(f"\nPredictions Parquet written to: {pred_output}")
 
 try:
     rows_for_db = [row.asDict() for row in output_df.collect()]
+    for r in rows_for_db:
+        r["sessions"] = json.loads(r["sessions"])
+        r["trend"]    = json.loads(r["trend"])
     upsert_predictions(rows_for_db)
     print("Predictions upserted to Supabase.")
 except Exception as e:

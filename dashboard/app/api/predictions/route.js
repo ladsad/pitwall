@@ -66,8 +66,8 @@ export async function GET(request) {
         predicted_position: p.predicted_position,
         win_probability: p.win_probability,
         uncertainty: p.uncertainty,
-        trend: { label: "flat", value: null },
-        sessions: {},
+        trend: p.trend || { label: "flat", value: null },
+        sessions: p.sessions || {},
       })),
       feature_importance: [],
       history: history.map((h) => ({

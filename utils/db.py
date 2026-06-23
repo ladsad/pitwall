@@ -6,9 +6,23 @@ Replaces the old spark_session.py + dbutils-based file I/O.
 from __future__ import annotations
 
 import os
+import math
 from functools import lru_cache
 
 from supabase import create_client, Client
+
+
+def _clean_json(obj):
+    """Recursively convert NaN and Infinity to None for JSON serialization."""
+    if isinstance(obj, dict):
+        return {k: _clean_json(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [_clean_json(x) for x in obj]
+    elif isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+        return obj
+    return obj
 
 
 @lru_cache(maxsize=1)
@@ -30,8 +44,9 @@ def upsert_predictions(records: list[dict]) -> None:
     Conflict resolution on (season, event, driver, model_version).
     """
     sb = get_supabase()
+    clean_records = _clean_json(records)
     sb.table("predictions").upsert(
-        records,
+        clean_records,
         on_conflict="season,event,driver,model_version",
     ).execute()
 
@@ -39,8 +54,9 @@ def upsert_predictions(records: list[dict]) -> None:
 def upsert_history(records: list[dict]) -> None:
     """Upsert season history rows into the 'race_history' table."""
     sb = get_supabase()
+    clean_records = _clean_json(records)
     sb.table("race_history").upsert(
-        records,
+        clean_records,
         on_conflict="season,event,model_version",
     ).execute()
 

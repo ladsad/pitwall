@@ -1,7 +1,7 @@
 __pycache__/
 __builtins__.pyi
 *.pyc
-.env
+.env.local
 .DS_Store
 dashboard/node_modules/
 dashboard/.next/
@@ -9,5 +9,6 @@ dashboard/.next/
 .cache
 .vscode
 context/
+data/
 # Windows PySpark dependencies
 hadoop/

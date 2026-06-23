@@ -1,8 +1,17 @@
 import os
 import pathlib
+from dotenv import load_dotenv
+
+try:
+    _PROJECT_ROOT = pathlib.Path(__file__).resolve().parent
+except NameError:
+    _PROJECT_ROOT = pathlib.Path.cwd()
+
+load_dotenv(_PROJECT_ROOT / ".env.local")
+load_dotenv(_PROJECT_ROOT / ".env")
 
 SEASON = 2026
-EVENT = "Canadian Grand Prix"
+EVENT = "Monaco Grand Prix"
 ROUND_NUMBER = 5
 
 SESSION_TYPES = ["FP1", "FP2", "FP3", "Q", "SQ", "S", "R"]
@@ -10,11 +19,6 @@ SESSION_TYPES = ["FP1", "FP2", "FP3", "Q", "SQ", "S", "R"]
 # ── PATHS ─────────────────────────────────────────────────────────────────────
 # Local paths replacing Unity Catalog Volumes.
 # Set PITWALL_DATA env var to override, or default to ./data relative to project root.
-
-try:
-    _PROJECT_ROOT = pathlib.Path(__file__).resolve().parent
-except NameError:
-    _PROJECT_ROOT = pathlib.Path.cwd()
 
 BASE_PATH = pathlib.Path(os.environ.get("PITWALL_DATA", str(_PROJECT_ROOT / "data")))
 

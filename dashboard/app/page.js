@@ -15,6 +15,8 @@ export default function Home() {
   const [selectedDriver, setSelectedDriver] = useState(null);
   const [error, setError] = useState(null);
 
+  const currentEvent = "Spanish Grand Prix";
+
   useEffect(() => {
     fetch(`/api/predictions?season=2026&event=${encodeURIComponent(currentEvent)}`)
       .then((res) => {

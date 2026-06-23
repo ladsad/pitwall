@@ -213,6 +213,38 @@ feature_importance = [
     )
 ]
 
+# Compute driver-specific feature impacts
+global_imp = {item["feature"]: item["importance"] for item in feature_importance}
+driver_features = predictions_raw.groupBy("driver").agg(
+    *[F.avg(c).alias(c + "_avg") for c in FEATURE_COLS]
+).collect()
+
+driver_feat_dict = {r["driver"]: {c: r[c + "_avg"] for c in FEATURE_COLS} for r in driver_features}
+feature_stats = {}
+for c in FEATURE_COLS:
+    vals = [r[c] for r in driver_features if r[c] is not None]
+    mean_val = sum(vals)/len(vals) if vals else 0
+    std_val = (sum((v - mean_val)**2 for v in vals) / len(vals))**0.5 if len(vals) > 1 else 1.0
+    feature_stats[c] = (mean_val, std_val)
+
+driver_local_importance = {}
+for d, feats in driver_feat_dict.items():
+    local_imp = []
+    for c in FEATURE_COLS:
+        g_imp = global_imp[c]
+        val = feats[c] if feats[c] is not None else feature_stats[c][0]
+        mean_val, std_val = feature_stats[c]
+        z_score = abs(val - mean_val) / (std_val + 1e-6)
+        score = g_imp * z_score
+        local_imp.append({"feature": c, "importance": score})
+    
+    # Normalize to 1.0 or keep raw impacts? Let's normalize so it sums to 1 like global
+    total = sum(item["importance"] for item in local_imp) + 1e-6
+    local_imp = [{"feature": item["feature"], "importance": round(item["importance"]/total, 4)} for item in local_imp]
+    local_imp.sort(key=lambda x: x["importance"], reverse=True)
+    driver_local_importance[d] = local_imp
+
+
 # ── HISTORICAL ACCURACY ───────────────────────────────────────────────────────
 
 history, season_acc = season_history(
@@ -226,6 +258,7 @@ history, season_acc = season_history(
 import json
 _sessions_udf = F.udf(lambda d: json.dumps(sess_scores.get(d, {})), "string")
 _trend_udf    = F.udf(lambda d: json.dumps(trend.get(d, {"label": "flat", "value": None})), "string")
+_feature_importance_udf = F.udf(lambda d: json.dumps(driver_local_importance.get(d, [])), "string")
 
 output_df = final_preds.select(
     F.col("driver").cast("string"),
@@ -239,6 +272,7 @@ output_df = final_preds.select(
     F.col("uncertainty").cast("float"),
     _sessions_udf(F.col("driver")).alias("sessions"),
     _trend_udf(F.col("driver")).alias("trend"),
+    _feature_importance_udf(F.col("driver")).alias("feature_importance"),
     F.lit(datetime.now(timezone.utc).isoformat()).cast("string").alias("generated_at"),
 )
 
@@ -253,6 +287,7 @@ try:
     for r in rows_for_db:
         r["sessions"] = json.loads(r["sessions"])
         r["trend"]    = json.loads(r["trend"])
+        r["feature_importance"] = json.loads(r["feature_importance"])
     upsert_predictions(rows_for_db)
     print("Predictions upserted to Supabase.")
 except Exception as e:
@@ -283,6 +318,7 @@ payload = build_payload(
             "uncertainty":        round(float(row["uncertainty"]), 4),
             "trend":              trend.get(row["driver"], {"label": "flat", "value": None}),
             "sessions":           sess_scores.get(row["driver"], {}),
+            "feature_importance": driver_local_importance.get(row["driver"], []),
         }
         for row in rows
     ],

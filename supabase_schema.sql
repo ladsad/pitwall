@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS predictions (
     uncertainty        REAL,
     sessions           JSONB,
     trend              JSONB,
+    feature_importance JSONB,
     generated_at       TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(season, event, driver, model_version)
 );

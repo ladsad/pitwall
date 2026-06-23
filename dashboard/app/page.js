@@ -116,7 +116,7 @@ export default function Home() {
             />
           </div>
           <div className="grid grid-cols-2 gap-[1px] flex-1">
-            <FeatureImportance features={data.feature_importance} />
+            <FeatureImportance features={selectedDriver?.feature_importance?.length > 0 ? selectedDriver.feature_importance : data.feature_importance} />
             <HistoricalAccuracy history={data.history} />
           </div>
         </div>

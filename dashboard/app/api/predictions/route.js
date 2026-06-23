@@ -1,11 +1,17 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+export const dynamic = 'force-dynamic';
 
 export async function GET(request) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    console.warn("Supabase credentials missing");
+    return Response.json({ error: "Supabase credentials missing" }, { status: 500 });
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseKey);
   const { searchParams } = new URL(request.url);
   const season = parseInt(searchParams.get("season") || "2026", 10);
   const event = searchParams.get("event");

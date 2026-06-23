@@ -14,10 +14,30 @@ export default function Home() {
   const [data, setData] = useState(null);
   const [selectedDriver, setSelectedDriver] = useState(null);
   const [error, setError] = useState(null);
-
-  const currentEvent = "Monaco Grand Prix";
+  const [events, setEvents] = useState([]);
+  const [currentEvent, setCurrentEvent] = useState(null);
 
   useEffect(() => {
+    fetch("/api/events?season=2026")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.length > 0) {
+          setEvents(json);
+          // Default to the latest event
+          setCurrentEvent(json[json.length - 1].event);
+        } else {
+          // Fallback if no events found yet
+          setCurrentEvent("Monaco Grand Prix");
+        }
+      })
+      .catch((err) => console.error("Failed to load events:", err));
+  }, []);
+
+  useEffect(() => {
+    if (!currentEvent) return;
+
+    setData(null);
+    setError(null);
     fetch(`/api/predictions?season=2026&event=${encodeURIComponent(currentEvent)}`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to load predictions.json");
@@ -51,6 +71,27 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col bg-[#000000]">
       <TopBar version={data.model_version} generatedAt={data.generated_at} />
+      
+      {/* Event Selector */}
+      <div className="bg-[#111] border-b border-[#222] px-4 py-2 flex items-center gap-4">
+        <label className="text-xs text-[#888] uppercase tracking-wider">Select Event:</label>
+        <select 
+          className="bg-[#222] text-white text-sm px-3 py-1 rounded border border-[#333] outline-none focus:border-[#e10600] transition-colors"
+          value={currentEvent || ""}
+          onChange={(e) => setCurrentEvent(e.target.value)}
+        >
+          {events.length > 0 ? (
+            events.map((ev) => (
+              <option key={ev.event} value={ev.event}>
+                Round {ev.round}: {ev.event}
+              </option>
+            ))
+          ) : (
+            <option value={currentEvent}>{currentEvent}</option>
+          )}
+        </select>
+      </div>
+
       <HeroStrip
         round={data.round}
         event={data.event}

@@ -19,9 +19,12 @@ export default function Home() {
 
   useEffect(() => {
     fetch("/api/events?season=2026")
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error("API status " + res.status);
+        return res.json();
+      })
       .then((json) => {
-        if (json.length > 0) {
+        if (Array.isArray(json) && json.length > 0) {
           setEvents(json);
           // Default to the latest event
           setCurrentEvent(json[json.length - 1].event);
@@ -30,7 +33,10 @@ export default function Home() {
           setCurrentEvent("Monaco Grand Prix");
         }
       })
-      .catch((err) => console.error("Failed to load events:", err));
+      .catch((err) => {
+        console.error("Failed to load events:", err);
+        setCurrentEvent("Monaco Grand Prix");
+      });
   }, []);
 
   useEffect(() => {
@@ -50,7 +56,7 @@ export default function Home() {
         }
       })
       .catch((err) => setError(err.message));
-  }, []);
+  }, [currentEvent]);
 
   if (error) {
     return (

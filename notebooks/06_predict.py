@@ -75,6 +75,9 @@ predict_df = spark.read.parquet(
     str(FEATURES_PATH / f"season={SEASON}" / f"event={EVENT}")
 )
 
+# Prevent data leakage: exclude Race sessions. The model must predict using only pre-race data.
+predict_df = predict_df.filter(F.col("session_type") != "R")
+
 row_count = predict_df.count()
 print(f"\nFeature rows for {EVENT}: {row_count:,}")
 predict_df.groupBy("session_type").count().orderBy("session_type").show()

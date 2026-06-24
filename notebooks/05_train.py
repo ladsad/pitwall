@@ -57,6 +57,10 @@ print(f"Model output: {model_path}")
 
 train_df = gold_df.filter(F.col("race_position").isNotNull())
 
+# Prevent data leakage: exclude Race sessions from training data.
+# The model must learn to predict race_position using only pre-race sessions.
+train_df = train_df.filter(F.col("session_type") != "R")
+
 row_count = train_df.count()
 print(f"\nTraining rows (labelled): {row_count:,}")
 train_df.groupBy("session_type").count().orderBy("session_type").show()

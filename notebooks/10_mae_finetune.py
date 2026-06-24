@@ -53,14 +53,14 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Device: {device}")
 
 # ── DATASET — LABELLED LAPS ONLY ─────────────────────────────────────────────
-# Fine-tuning needs race_position labels. We pull Race and Qualifying sessions
-# since those have the most reliable labels from our Gold feature store.
+# Fine-tuning needs race_position labels. We pull pre-race sessions 
+# to ensure the model learns to predict the race without data leakage.
 
 print(f"\nLoading Silver (labelled laps only) from: {SILVER_PATH}")
 dataset = F1TelemetryDataset(
     silver_path    = SILVER_PATH,
     seasons        = TEL_SEASONS,
-    session_types  = ["R", "Q"],   # best label coverage
+    session_types  = ["FP1", "FP2", "FP3", "Q", "SQ", "S"],   # pre-race sessions
     labelled_only  = True,
 )
 

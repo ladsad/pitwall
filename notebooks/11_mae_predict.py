@@ -96,6 +96,7 @@ try:
              .filter(
                  (F.col("season") == SEASON)
                  & (F.col("event") == EVENT)
+                 & (F.col("session_type") != "R")
              )
     )
     row_count = silver_sdf.count()

@@ -222,7 +222,7 @@ driver_features = predictions_raw.groupBy("driver").agg(
 driver_feat_dict = {r["driver"]: {c: r[c + "_avg"] for c in FEATURE_COLS} for r in driver_features}
 feature_stats = {}
 for c in FEATURE_COLS:
-    vals = [r[c] for r in driver_features if r[c] is not None]
+    vals = [r[c + "_avg"] for r in driver_features if r[c + "_avg"] is not None]
     mean_val = sum(vals)/len(vals) if vals else 0
     std_val = (sum((v - mean_val)**2 for v in vals) / len(vals))**0.5 if len(vals) > 1 else 1.0
     feature_stats[c] = (mean_val, std_val)

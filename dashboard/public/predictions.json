@@ -1,6 +1,6 @@
 {
   "model_version": "base_r07",
-  "generated_at": "2026-06-24T05:08:58.429285+00:00",
+  "generated_at": "2026-06-24T06:50:58.022437+00:00",
   "event": "Barcelona Grand Prix",
   "round": 7,
   "season": 2026,
@@ -12,7 +12,7 @@
     "Q"
   ],
   "season_accuracy": {
-    "top3_pct": 0.2717,
+    "top3_pct": 0.3182,
     "races": 7
   },
   "recency_lambda": 0.15,
@@ -21,7 +21,7 @@
       "driver": "HAM",
       "team": "Ferrari",
       "predicted_position": 1,
-      "win_probability": 0.1823,
+      "win_probability": 0.2125,
       "uncertainty": 0.0004,
       "trend": {
         "label": "down",
@@ -73,9 +73,9 @@
     },
     {
       "driver": "PIA",
-      "team": "",
+      "team": "McLaren",
       "predicted_position": 2,
-      "win_probability": 0.112,
+      "win_probability": 0.1306,
       "uncertainty": 0.0002,
       "trend": {
         "label": "down",
@@ -130,9 +130,9 @@
     },
     {
       "driver": "VER",
-      "team": "",
+      "team": "Red Bull Racing",
       "predicted_position": 3,
-      "win_probability": 0.0886,
+      "win_probability": 0.1033,
       "uncertainty": 0.0002,
       "trend": {
         "label": "down",
@@ -189,7 +189,7 @@
       "driver": "HAD",
       "team": "Red Bull Racing",
       "predicted_position": 4,
-      "win_probability": 0.0656,
+      "win_probability": 0.0764,
       "uncertainty": 0.0014,
       "trend": {
         "label": "down",
@@ -241,9 +241,9 @@
     },
     {
       "driver": "RUS",
-      "team": "",
+      "team": "Mercedes",
       "predicted_position": 5,
-      "win_probability": 0.0342,
+      "win_probability": 0.0399,
       "uncertainty": 0.0001,
       "trend": {
         "label": "flat",
@@ -300,7 +300,7 @@
       "driver": "HUL",
       "team": "Audi",
       "predicted_position": 6,
-      "win_probability": 0.0334,
+      "win_probability": 0.039,
       "uncertainty": 0.0005,
       "trend": {
         "label": "up",
@@ -354,7 +354,7 @@
       "driver": "NOR",
       "team": "McLaren",
       "predicted_position": 7,
-      "win_probability": 0.0324,
+      "win_probability": 0.0378,
       "uncertainty": 0.0005,
       "trend": {
         "label": "up",
@@ -408,7 +408,7 @@
       "driver": "COL",
       "team": "Alpine",
       "predicted_position": 8,
-      "win_probability": 0.0305,
+      "win_probability": 0.0355,
       "uncertainty": 0.0001,
       "trend": {
         "label": "up",
@@ -465,7 +465,7 @@
       "driver": "BOR",
       "team": "Audi",
       "predicted_position": 9,
-      "win_probability": 0.0278,
+      "win_probability": 0.0324,
       "uncertainty": 0.0001,
       "trend": {
         "label": "up",
@@ -522,7 +522,7 @@
       "driver": "LIN",
       "team": "Racing Bulls",
       "predicted_position": 10,
-      "win_probability": 0.0277,
+      "win_probability": 0.0322,
       "uncertainty": 0.0001,
       "trend": {
         "label": "down",
@@ -579,7 +579,7 @@
       "driver": "ALB",
       "team": "Williams",
       "predicted_position": 11,
-      "win_probability": 0.0231,
+      "win_probability": 0.0269,
       "uncertainty": 0.0,
       "trend": {
         "label": "up",
@@ -633,7 +633,7 @@
       "driver": "GAS",
       "team": "Alpine",
       "predicted_position": 12,
-      "win_probability": 0.0228,
+      "win_probability": 0.0266,
       "uncertainty": 0.0,
       "trend": {
         "label": "down",
@@ -687,67 +687,10 @@
       ]
     },
     {
-      "driver": "PIA",
-      "team": "McLaren",
-      "predicted_position": 13,
-      "win_probability": 0.0218,
-      "uncertainty": 0.0002,
-      "trend": {
-        "label": "down",
-        "value": 0.4192
-      },
-      "sessions": {
-        "FP1": {
-          "score": 1.78,
-          "weight": 0.15
-        },
-        "FP2": {
-          "score": 0.52,
-          "weight": 0.25
-        },
-        "FP3": {
-          "score": 0.82,
-          "weight": 0.35
-        },
-        "Q": {
-          "score": 0.56,
-          "weight": 0.7
-        },
-        "SQ": null,
-        "S": null
-      },
-      "feature_importance": [
-        {
-          "feature": "pace_trend",
-          "importance": 0.5998
-        },
-        {
-          "feature": "consistency_score",
-          "importance": 0.1998
-        },
-        {
-          "feature": "pace_vs_teammate",
-          "importance": 0.1286
-        },
-        {
-          "feature": "best_sector_combo",
-          "importance": 0.0696
-        },
-        {
-          "feature": "lap_time_delta",
-          "importance": 0.0012
-        },
-        {
-          "feature": "tyre_deg_rate",
-          "importance": 0.001
-        }
-      ]
-    },
-    {
       "driver": "LAW",
       "team": "Racing Bulls",
-      "predicted_position": 14,
-      "win_probability": 0.0217,
+      "predicted_position": 13,
+      "win_probability": 0.0253,
       "uncertainty": 0.0,
       "trend": {
         "label": "down",
@@ -801,124 +744,10 @@
       ]
     },
     {
-      "driver": "VER",
-      "team": "Red Bull Racing",
-      "predicted_position": 15,
-      "win_probability": 0.021,
-      "uncertainty": 0.0002,
-      "trend": {
-        "label": "down",
-        "value": 0.3753
-      },
-      "sessions": {
-        "FP1": {
-          "score": 1.7,
-          "weight": 0.15
-        },
-        "FP2": {
-          "score": 0.57,
-          "weight": 0.25
-        },
-        "FP3": {
-          "score": 0.41,
-          "weight": 0.35
-        },
-        "Q": {
-          "score": 0.53,
-          "weight": 0.7
-        },
-        "SQ": null,
-        "S": null
-      },
-      "feature_importance": [
-        {
-          "feature": "pace_trend",
-          "importance": 0.4697
-        },
-        {
-          "feature": "pace_vs_teammate",
-          "importance": 0.2438
-        },
-        {
-          "feature": "consistency_score",
-          "importance": 0.1479
-        },
-        {
-          "feature": "best_sector_combo",
-          "importance": 0.1131
-        },
-        {
-          "feature": "tyre_deg_rate",
-          "importance": 0.0238
-        },
-        {
-          "feature": "lap_time_delta",
-          "importance": 0.0016
-        }
-      ]
-    },
-    {
       "driver": "LEC",
       "team": "Ferrari",
-      "predicted_position": 16,
-      "win_probability": 0.0206,
-      "uncertainty": 0.0,
-      "trend": {
-        "label": "flat",
-        "value": -0.0934
-      },
-      "sessions": {
-        "FP1": {
-          "score": 1.7,
-          "weight": 0.15
-        },
-        "FP2": {
-          "score": 0.85,
-          "weight": 0.25
-        },
-        "FP3": {
-          "score": 0.71,
-          "weight": 0.35
-        },
-        "Q": {
-          "score": 0.34,
-          "weight": 0.7
-        },
-        "SQ": null,
-        "S": null
-      },
-      "feature_importance": [
-        {
-          "feature": "pace_vs_teammate",
-          "importance": 0.3354
-        },
-        {
-          "feature": "consistency_score",
-          "importance": 0.2442
-        },
-        {
-          "feature": "best_sector_combo",
-          "importance": 0.2017
-        },
-        {
-          "feature": "pace_trend",
-          "importance": 0.1793
-        },
-        {
-          "feature": "tyre_deg_rate",
-          "importance": 0.0348
-        },
-        {
-          "feature": "lap_time_delta",
-          "importance": 0.0045
-        }
-      ]
-    },
-    {
-      "driver": "LEC",
-      "team": "",
-      "predicted_position": 17,
-      "win_probability": 0.018,
+      "predicted_position": 14,
+      "win_probability": 0.024,
       "uncertainty": 0.0,
       "trend": {
         "label": "flat",
@@ -974,8 +803,8 @@
     {
       "driver": "BEG",
       "team": "",
-      "predicted_position": 18,
-      "win_probability": 0.0163,
+      "predicted_position": 15,
+      "win_probability": 0.019,
       "uncertainty": 0.0,
       "trend": {
         "label": "flat",
@@ -1022,8 +851,8 @@
     {
       "driver": "FOR",
       "team": "",
-      "predicted_position": 19,
-      "win_probability": 0.0159,
+      "predicted_position": 16,
+      "win_probability": 0.0186,
       "uncertainty": 0.0003,
       "trend": {
         "label": "flat",
@@ -1070,8 +899,8 @@
     {
       "driver": "OCO",
       "team": "Haas F1 Team",
-      "predicted_position": 20,
-      "win_probability": 0.0157,
+      "predicted_position": 17,
+      "win_probability": 0.0183,
       "uncertainty": 0.0,
       "trend": {
         "label": "up",
@@ -1126,9 +955,9 @@
     },
     {
       "driver": "BOT",
-      "team": "",
-      "predicted_position": 21,
-      "win_probability": 0.015,
+      "team": "Cadillac",
+      "predicted_position": 18,
+      "win_probability": 0.0175,
       "uncertainty": 0.0,
       "trend": {
         "label": "flat",
@@ -1184,8 +1013,8 @@
     {
       "driver": "ARO",
       "team": "",
-      "predicted_position": 22,
-      "win_probability": 0.0142,
+      "predicted_position": 19,
+      "win_probability": 0.0165,
       "uncertainty": 0.0,
       "trend": {
         "label": "flat",
@@ -1231,9 +1060,9 @@
     },
     {
       "driver": "BEA",
-      "team": "",
-      "predicted_position": 23,
-      "win_probability": 0.0137,
+      "team": "Haas F1 Team",
+      "predicted_position": 20,
+      "win_probability": 0.016,
       "uncertainty": 0.0,
       "trend": {
         "label": "up",
@@ -1287,181 +1116,10 @@
       ]
     },
     {
-      "driver": "COL",
-      "team": "",
-      "predicted_position": 24,
-      "win_probability": 0.0126,
-      "uncertainty": 0.0001,
-      "trend": {
-        "label": "up",
-        "value": -0.2322
-      },
-      "sessions": {
-        "FP1": {
-          "score": 2.14,
-          "weight": 0.15
-        },
-        "FP2": {
-          "score": 0.63,
-          "weight": 0.25
-        },
-        "FP3": {
-          "score": 1.27,
-          "weight": 0.35
-        },
-        "Q": {
-          "score": 0.65,
-          "weight": 0.7
-        },
-        "SQ": null,
-        "S": null
-      },
-      "feature_importance": [
-        {
-          "feature": "best_sector_combo",
-          "importance": 0.4559
-        },
-        {
-          "feature": "pace_trend",
-          "importance": 0.4044
-        },
-        {
-          "feature": "consistency_score",
-          "importance": 0.1033
-        },
-        {
-          "feature": "pace_vs_teammate",
-          "importance": 0.0314
-        },
-        {
-          "feature": "tyre_deg_rate",
-          "importance": 0.0045
-        },
-        {
-          "feature": "lap_time_delta",
-          "importance": 0.0005
-        }
-      ]
-    },
-    {
-      "driver": "OCO",
-      "team": "",
-      "predicted_position": 25,
-      "win_probability": 0.0118,
-      "uncertainty": 0.0,
-      "trend": {
-        "label": "up",
-        "value": -0.4128
-      },
-      "sessions": {
-        "FP1": {
-          "score": 1.81,
-          "weight": 0.15
-        },
-        "FP2": {
-          "score": 1.04,
-          "weight": 0.25
-        },
-        "FP3": {
-          "score": 0.57,
-          "weight": 0.35
-        },
-        "Q": {
-          "score": 0.72,
-          "weight": 0.7
-        },
-        "SQ": null,
-        "S": null
-      },
-      "feature_importance": [
-        {
-          "feature": "pace_trend",
-          "importance": 0.4872
-        },
-        {
-          "feature": "best_sector_combo",
-          "importance": 0.227
-        },
-        {
-          "feature": "pace_vs_teammate",
-          "importance": 0.1822
-        },
-        {
-          "feature": "tyre_deg_rate",
-          "importance": 0.0511
-        },
-        {
-          "feature": "consistency_score",
-          "importance": 0.0474
-        },
-        {
-          "feature": "lap_time_delta",
-          "importance": 0.0051
-        }
-      ]
-    },
-    {
-      "driver": "BOR",
-      "team": "",
-      "predicted_position": 26,
-      "win_probability": 0.0113,
-      "uncertainty": 0.0001,
-      "trend": {
-        "label": "up",
-        "value": -0.3719
-      },
-      "sessions": {
-        "FP1": {
-          "score": 1.78,
-          "weight": 0.15
-        },
-        "FP2": {
-          "score": 0.92,
-          "weight": 0.25
-        },
-        "FP3": {
-          "score": 0.83,
-          "weight": 0.35
-        },
-        "Q": {
-          "score": 0.42,
-          "weight": 0.7
-        },
-        "SQ": null,
-        "S": null
-      },
-      "feature_importance": [
-        {
-          "feature": "pace_trend",
-          "importance": 0.4609
-        },
-        {
-          "feature": "consistency_score",
-          "importance": 0.2193
-        },
-        {
-          "feature": "pace_vs_teammate",
-          "importance": 0.2077
-        },
-        {
-          "feature": "best_sector_combo",
-          "importance": 0.1034
-        },
-        {
-          "feature": "tyre_deg_rate",
-          "importance": 0.0049
-        },
-        {
-          "feature": "lap_time_delta",
-          "importance": 0.0038
-        }
-      ]
-    },
-    {
       "driver": "ANT",
       "team": "Mercedes",
-      "predicted_position": 27,
-      "win_probability": 0.0111,
+      "predicted_position": 21,
+      "win_probability": 0.0129,
       "uncertainty": 0.0,
       "trend": {
         "label": "down",
@@ -1512,124 +1170,10 @@
       ]
     },
     {
-      "driver": "RUS",
-      "team": "Mercedes",
-      "predicted_position": 28,
-      "win_probability": 0.0094,
-      "uncertainty": 0.0001,
-      "trend": {
-        "label": "flat",
-        "value": -0.0674
-      },
-      "sessions": {
-        "FP1": {
-          "score": 3.14,
-          "weight": 0.15
-        },
-        "FP2": {
-          "score": 0.34,
-          "weight": 0.25
-        },
-        "FP3": {
-          "score": 0.29,
-          "weight": 0.35
-        },
-        "Q": {
-          "score": 0.51,
-          "weight": 0.7
-        },
-        "SQ": null,
-        "S": null
-      },
-      "feature_importance": [
-        {
-          "feature": "pace_vs_teammate",
-          "importance": 0.3717
-        },
-        {
-          "feature": "consistency_score",
-          "importance": 0.2871
-        },
-        {
-          "feature": "best_sector_combo",
-          "importance": 0.217
-        },
-        {
-          "feature": "pace_trend",
-          "importance": 0.0918
-        },
-        {
-          "feature": "tyre_deg_rate",
-          "importance": 0.0311
-        },
-        {
-          "feature": "lap_time_delta",
-          "importance": 0.0013
-        }
-      ]
-    },
-    {
-      "driver": "LAW",
-      "team": "",
-      "predicted_position": 29,
-      "win_probability": 0.0086,
-      "uncertainty": 0.0,
-      "trend": {
-        "label": "down",
-        "value": 0.6397
-      },
-      "sessions": {
-        "FP1": {
-          "score": 1.06,
-          "weight": 0.15
-        },
-        "FP2": {
-          "score": 0.5,
-          "weight": 0.25
-        },
-        "FP3": {
-          "score": 0.22,
-          "weight": 0.35
-        },
-        "Q": {
-          "score": 0.66,
-          "weight": 0.7
-        },
-        "SQ": null,
-        "S": null
-      },
-      "feature_importance": [
-        {
-          "feature": "pace_trend",
-          "importance": 0.5246
-        },
-        {
-          "feature": "best_sector_combo",
-          "importance": 0.293
-        },
-        {
-          "feature": "consistency_score",
-          "importance": 0.1356
-        },
-        {
-          "feature": "tyre_deg_rate",
-          "importance": 0.0341
-        },
-        {
-          "feature": "pace_vs_teammate",
-          "importance": 0.0116
-        },
-        {
-          "feature": "lap_time_delta",
-          "importance": 0.001
-        }
-      ]
-    },
-    {
       "driver": "PER",
       "team": "Cadillac",
-      "predicted_position": 30,
-      "win_probability": 0.0076,
+      "predicted_position": 22,
+      "win_probability": 0.0088,
       "uncertainty": 0.0,
       "trend": {
         "label": "up",
@@ -1680,181 +1224,10 @@
       ]
     },
     {
-      "driver": "BOT",
-      "team": "Cadillac",
-      "predicted_position": 31,
-      "win_probability": 0.007,
-      "uncertainty": 0.0,
-      "trend": {
-        "label": "flat",
-        "value": null
-      },
-      "sessions": {
-        "FP1": {
-          "score": 1.37,
-          "weight": 0.15
-        },
-        "FP2": {
-          "score": 0.15,
-          "weight": 0.25
-        },
-        "FP3": {
-          "score": 0.13,
-          "weight": 0.35
-        },
-        "Q": {
-          "score": 0.61,
-          "weight": 0.7
-        },
-        "SQ": null,
-        "S": null
-      },
-      "feature_importance": [
-        {
-          "feature": "consistency_score",
-          "importance": 0.4116
-        },
-        {
-          "feature": "best_sector_combo",
-          "importance": 0.2712
-        },
-        {
-          "feature": "pace_vs_teammate",
-          "importance": 0.2445
-        },
-        {
-          "feature": "pace_trend",
-          "importance": 0.0339
-        },
-        {
-          "feature": "tyre_deg_rate",
-          "importance": 0.0324
-        },
-        {
-          "feature": "lap_time_delta",
-          "importance": 0.0064
-        }
-      ]
-    },
-    {
-      "driver": "LIN",
-      "team": "",
-      "predicted_position": 32,
-      "win_probability": 0.0062,
-      "uncertainty": 0.0001,
-      "trend": {
-        "label": "down",
-        "value": 0.1914
-      },
-      "sessions": {
-        "FP1": {
-          "score": 0.99,
-          "weight": 0.15
-        },
-        "FP2": {
-          "score": 0.57,
-          "weight": 0.25
-        },
-        "FP3": {
-          "score": 0.39,
-          "weight": 0.35
-        },
-        "Q": {
-          "score": 0.29,
-          "weight": 0.7
-        },
-        "SQ": null,
-        "S": null
-      },
-      "feature_importance": [
-        {
-          "feature": "best_sector_combo",
-          "importance": 0.3094
-        },
-        {
-          "feature": "pace_trend",
-          "importance": 0.3012
-        },
-        {
-          "feature": "pace_vs_teammate",
-          "importance": 0.2846
-        },
-        {
-          "feature": "tyre_deg_rate",
-          "importance": 0.0748
-        },
-        {
-          "feature": "consistency_score",
-          "importance": 0.0295
-        },
-        {
-          "feature": "lap_time_delta",
-          "importance": 0.0005
-        }
-      ]
-    },
-    {
-      "driver": "BEA",
-      "team": "Haas F1 Team",
-      "predicted_position": 33,
-      "win_probability": 0.0058,
-      "uncertainty": 0.0,
-      "trend": {
-        "label": "up",
-        "value": -0.4964
-      },
-      "sessions": {
-        "FP1": {
-          "score": 1.85,
-          "weight": 0.15
-        },
-        "FP2": {
-          "score": 0.98,
-          "weight": 0.25
-        },
-        "FP3": {
-          "score": 0.1,
-          "weight": 0.35
-        },
-        "Q": {
-          "score": 0.84,
-          "weight": 0.7
-        },
-        "SQ": null,
-        "S": null
-      },
-      "feature_importance": [
-        {
-          "feature": "pace_trend",
-          "importance": 0.5329
-        },
-        {
-          "feature": "best_sector_combo",
-          "importance": 0.2535
-        },
-        {
-          "feature": "consistency_score",
-          "importance": 0.1252
-        },
-        {
-          "feature": "tyre_deg_rate",
-          "importance": 0.0807
-        },
-        {
-          "feature": "pace_vs_teammate",
-          "importance": 0.0076
-        },
-        {
-          "feature": "lap_time_delta",
-          "importance": 0.0001
-        }
-      ]
-    },
-    {
       "driver": "STR",
       "team": "Aston Martin",
-      "predicted_position": 34,
-      "win_probability": 0.0055,
+      "predicted_position": 23,
+      "win_probability": 0.0064,
       "uncertainty": 0.0006,
       "trend": {
         "label": "flat",
@@ -1908,67 +1281,10 @@
       ]
     },
     {
-      "driver": "GAS",
-      "team": "",
-      "predicted_position": 35,
-      "win_probability": 0.0054,
-      "uncertainty": 0.0,
-      "trend": {
-        "label": "down",
-        "value": 1.1367
-      },
-      "sessions": {
-        "FP1": {
-          "score": 1.02,
-          "weight": 0.15
-        },
-        "FP2": {
-          "score": 0.73,
-          "weight": 0.25
-        },
-        "FP3": {
-          "score": 0.5,
-          "weight": 0.35
-        },
-        "Q": {
-          "score": 0.63,
-          "weight": 0.7
-        },
-        "SQ": null,
-        "S": null
-      },
-      "feature_importance": [
-        {
-          "feature": "pace_trend",
-          "importance": 0.7254
-        },
-        {
-          "feature": "best_sector_combo",
-          "importance": 0.1359
-        },
-        {
-          "feature": "pace_vs_teammate",
-          "importance": 0.1155
-        },
-        {
-          "feature": "consistency_score",
-          "importance": 0.0137
-        },
-        {
-          "feature": "tyre_deg_rate",
-          "importance": 0.0084
-        },
-        {
-          "feature": "lap_time_delta",
-          "importance": 0.0012
-        }
-      ]
-    },
-    {
       "driver": "SAI",
       "team": "Williams",
-      "predicted_position": 36,
-      "win_probability": 0.0042,
+      "predicted_position": 24,
+      "win_probability": 0.0048,
       "uncertainty": 0.0,
       "trend": {
         "label": "up",
@@ -2024,8 +1340,8 @@
     {
       "driver": "HER",
       "team": "",
-      "predicted_position": 37,
-      "win_probability": 0.0041,
+      "predicted_position": 25,
+      "win_probability": 0.0047,
       "uncertainty": 0.0,
       "trend": {
         "label": "flat",
@@ -2072,8 +1388,8 @@
     {
       "driver": "VES",
       "team": "",
-      "predicted_position": 38,
-      "win_probability": 0.004,
+      "predicted_position": 26,
+      "win_probability": 0.0047,
       "uncertainty": 0.0,
       "trend": {
         "label": "flat",
@@ -2120,8 +1436,8 @@
     {
       "driver": "IWA",
       "team": "",
-      "predicted_position": 39,
-      "win_probability": 0.004,
+      "predicted_position": 27,
+      "win_probability": 0.0046,
       "uncertainty": 0.0,
       "trend": {
         "label": "flat",
@@ -2168,179 +1484,8 @@
     {
       "driver": "ALO",
       "team": "Aston Martin",
-      "predicted_position": 40,
-      "win_probability": 0.0039,
-      "uncertainty": 0.0,
-      "trend": {
-        "label": "up",
-        "value": -1.0673
-      },
-      "sessions": {
-        "FP1": {
-          "score": 0.94,
-          "weight": 0.15
-        },
-        "FP2": {
-          "score": 0.43,
-          "weight": 0.25
-        },
-        "FP3": {
-          "score": 0.33,
-          "weight": 0.35
-        },
-        "Q": {
-          "score": 0.24,
-          "weight": 0.7
-        },
-        "SQ": null,
-        "S": null
-      },
-      "feature_importance": [
-        {
-          "feature": "pace_trend",
-          "importance": 0.5162
-        },
-        {
-          "feature": "consistency_score",
-          "importance": 0.3239
-        },
-        {
-          "feature": "best_sector_combo",
-          "importance": 0.1041
-        },
-        {
-          "feature": "pace_vs_teammate",
-          "importance": 0.0332
-        },
-        {
-          "feature": "tyre_deg_rate",
-          "importance": 0.0191
-        },
-        {
-          "feature": "lap_time_delta",
-          "importance": 0.0035
-        }
-      ]
-    },
-    {
-      "driver": "STR",
-      "team": "",
-      "predicted_position": 41,
-      "win_probability": 0.0012,
-      "uncertainty": 0.0006,
-      "trend": {
-        "label": "flat",
-        "value": null
-      },
-      "sessions": {
-        "FP1": {
-          "score": 0.48,
-          "weight": 0.15
-        },
-        "FP2": {
-          "score": 0.68,
-          "weight": 0.25
-        },
-        "FP3": {
-          "score": 0.37,
-          "weight": 0.35
-        },
-        "Q": {
-          "score": 0.0,
-          "weight": 0.7
-        },
-        "SQ": null,
-        "S": null
-      },
-      "feature_importance": [
-        {
-          "feature": "consistency_score",
-          "importance": 0.3908
-        },
-        {
-          "feature": "pace_trend",
-          "importance": 0.3719
-        },
-        {
-          "feature": "pace_vs_teammate",
-          "importance": 0.1775
-        },
-        {
-          "feature": "tyre_deg_rate",
-          "importance": 0.0483
-        },
-        {
-          "feature": "best_sector_combo",
-          "importance": 0.0069
-        },
-        {
-          "feature": "lap_time_delta",
-          "importance": 0.0047
-        }
-      ]
-    },
-    {
-      "driver": "SAI",
-      "team": "",
-      "predicted_position": 42,
-      "win_probability": 0.001,
-      "uncertainty": 0.0,
-      "trend": {
-        "label": "up",
-        "value": -0.6616
-      },
-      "sessions": {
-        "FP1": {
-          "score": 1.16,
-          "weight": 0.15
-        },
-        "FP2": {
-          "score": 0.87,
-          "weight": 0.25
-        },
-        "FP3": {
-          "score": 0.39,
-          "weight": 0.35
-        },
-        "Q": {
-          "score": 1.0,
-          "weight": 0.7
-        },
-        "SQ": null,
-        "S": null
-      },
-      "feature_importance": [
-        {
-          "feature": "pace_trend",
-          "importance": 0.5762
-        },
-        {
-          "feature": "best_sector_combo",
-          "importance": 0.2214
-        },
-        {
-          "feature": "pace_vs_teammate",
-          "importance": 0.1108
-        },
-        {
-          "feature": "consistency_score",
-          "importance": 0.0769
-        },
-        {
-          "feature": "tyre_deg_rate",
-          "importance": 0.0125
-        },
-        {
-          "feature": "lap_time_delta",
-          "importance": 0.0022
-        }
-      ]
-    },
-    {
-      "driver": "ALO",
-      "team": "",
-      "predicted_position": 43,
-      "win_probability": 0.001,
+      "predicted_position": 28,
+      "win_probability": 0.0045,
       "uncertainty": 0.0,
       "trend": {
         "label": "up",

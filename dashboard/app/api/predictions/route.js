@@ -68,20 +68,6 @@ export async function GET(request) {
         if (localData.feature_importance) {
             featureImportance = localData.feature_importance;
         }
-        
-        let localPredsMap = {};
-        if (localData.predictions && localData.predictions.length > 0) {
-            localData.predictions.forEach(p => {
-                localPredsMap[p.driver] = p;
-            });
-        }
-        
-        predictions = predictions.map(p => {
-            if (localPredsMap[p.driver] && localPredsMap[p.driver].feature_importance) {
-                p.feature_importance = localPredsMap[p.driver].feature_importance;
-            }
-            return p;
-        });
 
         if (localData.history && localData.history.length > 0) {
             localHistory = localData.history;

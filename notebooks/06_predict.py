@@ -136,8 +136,9 @@ predictions_raw = (
 
 driver_preds = (
     predictions_raw
-    .groupBy("driver", "team")
+    .groupBy("driver")
     .agg(
+        F.max("team").alias("team"),
         F.max("win_prob_lap").alias("win_probability"),
         F.first("pred_pos_lap").alias("predicted_position"),
         F.count("*").alias("lap_count"),

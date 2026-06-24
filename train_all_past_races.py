@@ -47,7 +47,8 @@ def main():
             
             # Run the pipeline
             env = dict(sys.modules['os'].environ)
-            env['PIPELINE'] = 'weekend_rf'
+            env['PIPELINE'] = 'retrain_predict'
+            env['PYTHONIOENCODING'] = 'utf-8'
             
             try:
                 subprocess.run([sys.executable, 'run_pipeline.py'], env=env, check=True)

@@ -55,7 +55,10 @@ print(f"Model output: {model_path}")
 
 #  TRAINING DATA 
 
-train_df = gold_df.filter(F.col("race_position").isNotNull())
+train_df = gold_df.filter(
+    (F.col("race_position").isNotNull()) & 
+    (F.col("round_number") <= ROUND_NUMBER)
+)
 
 # Prevent data leakage: exclude Race sessions from training data.
 # The model must learn to predict race_position using only pre-race sessions.

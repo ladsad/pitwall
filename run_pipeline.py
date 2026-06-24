@@ -79,6 +79,10 @@ PIPELINE_STEPS = {
     "mae_finetune": [
         ("notebooks/10_mae_finetune",  "Fine-tune encoder for position prediction"),
     ],
+    "retrain_predict": [
+        ("notebooks/05_train",        "Train RF/GBT baseline model"),
+        ("notebooks/06_predict",      "Generate predictions + dashboard JSON"),
+    ],
     "full_mae": [
         ("notebooks/07_tel_ingest",    "Ingest raw telemetry (historical backfill)"),
         ("notebooks/08_tel_preprocess","Preprocess → Silver tensors"),

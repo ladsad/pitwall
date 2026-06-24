@@ -44,7 +44,7 @@ export async function GET(request) {
       return Response.json({ error: historyRes.error.message, details: historyRes.error }, { status: 503 });
     }
 
-    const predictions = predictionsRes.data || [];
+    let predictions = predictionsRes.data || [];
     const history = historyRes.data || [];
 
     // Find the most recent model version for this event

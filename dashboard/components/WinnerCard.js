@@ -46,7 +46,7 @@ export default function WinnerCard({ driver }) {
         <h2 className="text-[9px] text-[#e10600] tracking-[0.14em] uppercase m-0">Predicted Winner</h2>
       </div>
       
-      <div className="flex-1 flex flex-col items-center justify-center p-6 relative">
+      <div className="flex-1 flex flex-col items-center justify-center p-4 relative">
         <AnimatePresence mode="wait">
           <motion.div
             key={driver.driver}
@@ -56,21 +56,21 @@ export default function WinnerCard({ driver }) {
             transition={{ duration: 0.2, exit: { duration: 0.15 } }}
             className="w-full flex flex-col items-center justify-center"
           >
-            <div className="text-[80px] leading-none font-bold text-[#ffffff] mb-2 tracking-tighter">
+            <div className="text-[50px] leading-none font-bold text-[#ffffff] mb-1 tracking-tighter">
               {driver.driver}
             </div>
             
-            <div className="text-[#aaaaaa] text-sm uppercase tracking-widest mb-8 text-center">
+            <div className="text-[#aaaaaa] text-sm uppercase tracking-widest mb-4 text-center">
               <div className="text-[#ffffff] font-bold mb-1">{driver.full_name || driver.driver}</div>
               <div className="text-[10px]">{driver.team}</div>
             </div>
             
             <div 
               style={{ backgroundColor: '#0d0000', border: '1px solid #2a0000' }}
-              className="w-full py-4 flex flex-col items-center justify-center mb-6"
+              className="w-full py-2 flex flex-col items-center justify-center mb-4"
             >
               <span className="text-[10px] text-[#e10600] tracking-[0.14em] uppercase mb-1">Win Probability</span>
-              <span className="text-4xl font-bold text-[#ffffff]">
+              <span className="text-3xl font-bold text-[#ffffff]">
                 <AnimatedCounter value={driver.win_probability} duration={600} triggerKey={driver.driver} />
               </span>
             </div>

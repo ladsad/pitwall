@@ -155,6 +155,7 @@ for year in TEL_SEASONS:
         season_df = (
             spark.read
                  .schema(TEL_BRONZE_SCHEMA)
+                 .option("recursiveFileLookup", "true")
                  .parquet(bronze_season_path)
         )
     except Exception as e:

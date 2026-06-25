@@ -125,7 +125,7 @@ def compute_session_stats(rows: list[dict]) -> dict[str, dict[str, float]]:
         data = np.concatenate(stacked[ch])  # all values for this channel, this session
         stats[ch] = {
             "mean": float(np.mean(data)),
-            "std":  float(np.std(data)) if np.std(data) > 1e-6 else 1.0,
+            "std":  float(np.std(data)) if np.std(data) > 1e-3 else 1.0,
         }
     return stats
 

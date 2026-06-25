@@ -41,7 +41,7 @@ FINETUNE_CFG = dict(
     val_fraction        = 0.1,
     num_workers         = 2,
     pin_memory          = True,
-    n_classes           = 20,   # race positions 1–20
+    n_classes           = 30,   # race positions 1-25 (supports P21, P22)
 )
 
 # ENCODER_HPARAMS imported from config.py — single source of truth shared with 09 and 11.

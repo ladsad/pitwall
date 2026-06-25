@@ -102,7 +102,10 @@ def resample_lap(
         f = interp1d(dist, raw, kind="linear", fill_value="extrapolate")
         result_channels.append(f(dist_uniform).astype(np.float32))
 
-    return np.stack(result_channels, axis=0)  # (6, N)
+    stacked = np.stack(result_channels, axis=0)
+    if np.isnan(stacked).any():
+        return None
+    return stacked
 
 
 def compute_session_stats(rows: list[dict]) -> dict[str, dict[str, float]]:

@@ -43,9 +43,9 @@ SESSION_WEIGHTS = {
     "FP1": 0.15,
 }
 
-# Telemetry paths
-TELEMETRY_RAW_PATH   = BASE_PATH / "telemetry" / "raw"
-TELEMETRY_CLEAN_PATH = BASE_PATH / "telemetry" / "clean"
+# Telemetry paths (Support independent overrides for Kaggle input vs working dirs)
+TELEMETRY_RAW_PATH   = pathlib.Path(os.environ.get("TEL_RAW_PATH", str(BASE_PATH / "telemetry" / "raw")))
+TELEMETRY_CLEAN_PATH = pathlib.Path(os.environ.get("TEL_CLEAN_PATH", str(BASE_PATH / "telemetry" / "clean")))
 
 # Seasons to backfill during initial historical ingestion
 TEL_SEASONS = [2024, 2025, 2026]

@@ -26,7 +26,7 @@ import torch.nn.functional as F
 N_CHANNELS   = 6      # Speed, Throttle, Brake, RPM, nGear, DRS
 SEQ_LEN      = 1024   # fixed after resampling in 08_tel_preprocess.py
 N_PATCHES    = SEQ_LEN // 16   # = 64  (patch_stride=16)
-N_CLASSES    = 20              # race positions 1–20
+N_CLASSES    = 30              # race positions 1-25 (supports P21, P22)
 
 
 # ── POSITIONAL EMBEDDING ──────────────────────────────────────────────────────

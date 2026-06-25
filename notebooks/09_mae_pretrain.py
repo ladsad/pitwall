@@ -27,6 +27,8 @@ SILVER_PATH = str(TELEMETRY_CLEAN_PATH / "silver")
 CKPT_PATH   = str(BASE_PATH / "models" / "mae_checkpoint.pt")
 LOG_PATH    = str(BASE_PATH / "models" / "mae_train_log.csv")
 
+os.makedirs(os.path.dirname(CKPT_PATH), exist_ok=True)
+
 # ── HYPERPARAMETERS ───────────────────────────────────────────────────────────
 # Loaded from config.py — single source of truth shared with 10 and 11.
 # ViT-Small — fits on CE K80 (12 GB) with batch_size=128.

@@ -137,7 +137,11 @@ def normalise_row(channels_flat: list[float], stats: dict) -> list[float]:
 
 # ── MAIN PROCESSING LOOP ──────────────────────────────────────────────────────
 
-all_silver_rows   = []
+import shutil
+if os.path.exists(SILVER_PATH):
+    shutil.rmtree(SILVER_PATH)
+
+total_laps_written = 0
 sessions_ok       = 0
 sessions_skipped  = 0
 laps_rejected     = 0
@@ -166,6 +170,7 @@ for year in TEL_SEASONS:
     print(f"\n── Season {year} — {len(events)} events ──────────────────────────────")
 
     for event in events:
+        event_rows = []
         session_types = [
             row["session_type"]
             for row in (
@@ -232,41 +237,41 @@ for year in TEL_SEASONS:
                 # label_position filled after join below
                 r["label_position"] = None
 
-            all_silver_rows.extend(raw_rows)
+            event_rows.extend(raw_rows)
             sessions_ok += 1
 
             print(f"  [ok] {year} | {event} | {stype} — {len(raw_rows)} laps valid")
 
-# ── WRITE SILVER ─────────────────────────────────────────────────────────────
+        if event_rows:
+            event_sdf = spark.createDataFrame(event_rows, schema=TEL_SILVER_SCHEMA)
+            if has_labels:
+                event_sdf = event_sdf.join(
+                    labels_df.withColumnRenamed("race_position", "label_position_gold"),
+                    on=["season", "event", "driver"],
+                    how="left",
+                ).drop("label_position").withColumnRenamed("label_position_gold", "label_position")
+            
+            (
+                event_sdf
+                .write
+                .mode("append")
+                .partitionBy("season")
+                .parquet(SILVER_PATH)
+            )
+            total_laps_written += len(event_rows)
 
-if not all_silver_rows:
+# ── VERIFICATION ─────────────────────────────────────────────────────────────
+
+if total_laps_written == 0:
     print("\nNo valid rows to write — check Bronze data.")
 else:
-    silver_sdf = spark.createDataFrame(all_silver_rows, schema=TEL_SILVER_SCHEMA)
-
-    # ── Join labels from Gold feature store ───────────────────────────────────
-    if has_labels:
-        silver_sdf = silver_sdf.join(
-            labels_df.withColumnRenamed("race_position", "label_position_gold"),
-            on=["season", "event", "driver"],
-            how="left",
-        ).drop("label_position").withColumnRenamed("label_position_gold", "label_position")
-
-    # ── Write Silver Parquet, partitioned by season ───────────────────────────
-    (
-        silver_sdf
-        .write
-        .mode("overwrite")
-        .partitionBy("season")
-        .parquet(SILVER_PATH)
-    )
 
     print(f"\n{'='*60}")
     print(f"Silver written to: {SILVER_PATH}")
     print(f"  Sessions processed : {sessions_ok}")
     print(f"  Sessions skipped   : {sessions_skipped}")
     print(f"  Laps rejected      : {laps_rejected:,}")
-    print(f"  Laps written       : {len(all_silver_rows):,}")
+    print(f"  Laps written       : {total_laps_written:,}")
 
     # ── Verification ──────────────────────────────────────────────────────────
     verify = spark.read.schema(TEL_SILVER_SCHEMA).parquet(SILVER_PATH)

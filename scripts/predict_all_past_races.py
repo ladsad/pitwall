@@ -56,7 +56,7 @@ def main():
                     env[k] = os.getenv(k)
             
             try:
-                subprocess.run([sys.executable, 'notebooks/06_predict.py'], env=env, check=True)
+                subprocess.run([sys.executable, 'notebooks/11_mae_predict.py'], env=env, check=True)
                 events_run += 1
             except subprocess.CalledProcessError as e:
                 print(f"Failed to run predictions for {event_name}. Error: {e}")

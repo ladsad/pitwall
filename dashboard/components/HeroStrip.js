@@ -11,7 +11,7 @@ export default function HeroStrip({ round, event, sessions, accuracy }) {
   };
 
   const cells = [
-    { title: "Round", content: <span style={{ color: '#e10600' }} className="text-3xl font-bold">{round.toString().padStart(2, '0')}</span> },
+    { title: "Round", content: <span style={{ color: '#e10600' }} className="text-3xl font-bold">{(round || 0).toString().padStart(2, '0')}</span> },
     { title: "Event", content: <span className="text-[#ffffff] text-lg font-bold truncate">{event}</span> },
     { title: "Sessions Ingested", content: <span className="text-[#e8e8e8] text-sm">{sessions.join(' · ')}</span> },
     { title: "Season Accuracy (Top 3)", content: <div className="flex items-end gap-2"><span className="text-[#ffffff] text-lg font-bold">{(accuracy.top3_pct * 100).toFixed(0)}%</span><span className="text-[#666666] text-xs mb-0.5">({accuracy.races} races)</span></div> }

@@ -9,7 +9,7 @@ from scipy.interpolate import interp1d
 try:
     PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
 except NameError:
-    PROJECT_ROOT = pathlib.Path("/Workspace/Repos/pitwall")
+    PROJECT_ROOT = pathlib.Path.cwd()
 
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -32,12 +32,13 @@ MIN_SAMPLES           = 100    # fewer samples → bad telemetry
 MAX_INTERP_FRACTION   = 0.20   # more than 20% interpolated points → reject lap
 SC_LAP_MULTIPLIER     = 2.0    # laps > 2× session median are safety-car laps
 
-SILVER_PATH = f"{TELEMETRY_CLEAN_PATH}/silver"
+SILVER_PATH = str(TELEMETRY_CLEAN_PATH / "silver")
 
 print(f"Telemetry preprocessing: seasons {TEL_SEASONS}")
 print(f"Resample length N      : {N}")
 print(f"Input  (Bronze)        : {TELEMETRY_RAW_PATH}")
 print(f"Output (Silver)        : {SILVER_PATH}")
+
 
 # ── LOAD RACE RESULTS FOR LABELS ─────────────────────────────────────────────
 # Labels (race_position) come from the existing Gold feature store.
@@ -45,7 +46,7 @@ print(f"Output (Silver)        : {SILVER_PATH}")
 
 try:
     labels_df = (
-        spark.read.format("delta").load(FEATURES_PATH)
+        spark.read.parquet(str(FEATURES_PATH))
              .filter(F.col("session_type") == "R")
              .select("season", "event", "driver", "race_position")
              .distinct()
@@ -101,7 +102,10 @@ def resample_lap(
         f = interp1d(dist, raw, kind="linear", fill_value="extrapolate")
         result_channels.append(f(dist_uniform).astype(np.float32))
 
-    return np.stack(result_channels, axis=0)  # (6, N)
+    stacked = np.stack(result_channels, axis=0)
+    if np.isnan(stacked).any():
+        return None
+    return stacked
 
 
 def compute_session_stats(rows: list[dict]) -> dict[str, dict[str, float]]:
@@ -121,7 +125,7 @@ def compute_session_stats(rows: list[dict]) -> dict[str, dict[str, float]]:
         data = np.concatenate(stacked[ch])  # all values for this channel, this session
         stats[ch] = {
             "mean": float(np.mean(data)),
-            "std":  float(np.std(data)) if np.std(data) > 1e-6 else 1.0,
+            "std":  float(np.std(data)) if np.std(data) > 1e-3 else 1.0,
         }
     return stats
 
@@ -136,29 +140,21 @@ def normalise_row(channels_flat: list[float], stats: dict) -> list[float]:
 
 # ── MAIN PROCESSING LOOP ──────────────────────────────────────────────────────
 
-all_silver_rows   = []
+import shutil
+if os.path.exists(SILVER_PATH):
+    shutil.rmtree(SILVER_PATH)
+
+total_laps_written = 0
 sessions_ok       = 0
 sessions_skipped  = 0
 laps_rejected     = 0
 
 for year in TEL_SEASONS:
-    bronze_season_path = f"{TELEMETRY_RAW_PATH}/{year}"
+    bronze_season_path = str(TELEMETRY_RAW_PATH / str(year))
 
-    # ── Diagnostic: verify Bronze path exists before reading ──────────────────
-    try:
-        entries = dbutils.fs.ls(bronze_season_path)
-        print(f"  [diag] {year}: {len(entries)} events at {bronze_season_path}")
-        if entries:
-            print(f"  [diag] sample: {[e.name for e in entries[:3]]}")
-    except NameError:
-        # dbutils not available (local run) — fall back to os.path
-        if not os.path.exists(bronze_season_path):
-            print(f"  [skip] Season {year} — Bronze path not found (local): {bronze_season_path}")
-            print(f"         Run 07_tel_ingest.py first.")
-            continue
-    except Exception as diag_e:
-        print(f"  [skip] Season {year} — Bronze path not found: {diag_e}")
-        print(f"         Path checked: {bronze_season_path}")
+    # ── Verify Bronze path exists before reading ─────────────────────────────
+    if not os.path.exists(bronze_season_path):
+        print(f"  [skip] Season {year} — Bronze path not found: {bronze_season_path}")
         print(f"         Run 07_tel_ingest.py first.")
         continue
 
@@ -166,6 +162,7 @@ for year in TEL_SEASONS:
         season_df = (
             spark.read
                  .schema(TEL_BRONZE_SCHEMA)
+                 .option("recursiveFileLookup", "true")
                  .parquet(bronze_season_path)
         )
     except Exception as e:
@@ -176,6 +173,7 @@ for year in TEL_SEASONS:
     print(f"\n── Season {year} — {len(events)} events ──────────────────────────────")
 
     for event in events:
+        event_rows = []
         session_types = [
             row["session_type"]
             for row in (
@@ -242,41 +240,41 @@ for year in TEL_SEASONS:
                 # label_position filled after join below
                 r["label_position"] = None
 
-            all_silver_rows.extend(raw_rows)
+            event_rows.extend(raw_rows)
             sessions_ok += 1
 
             print(f"  [ok] {year} | {event} | {stype} — {len(raw_rows)} laps valid")
 
-# ── WRITE SILVER ─────────────────────────────────────────────────────────────
+        if event_rows:
+            event_sdf = spark.createDataFrame(event_rows, schema=TEL_SILVER_SCHEMA)
+            if has_labels:
+                event_sdf = event_sdf.join(
+                    labels_df.withColumnRenamed("race_position", "label_position_gold"),
+                    on=["season", "event", "driver"],
+                    how="left",
+                ).drop("label_position").withColumnRenamed("label_position_gold", "label_position")
+            
+            (
+                event_sdf
+                .write
+                .mode("append")
+                .partitionBy("season")
+                .parquet(SILVER_PATH)
+            )
+            total_laps_written += len(event_rows)
 
-if not all_silver_rows:
+# ── VERIFICATION ─────────────────────────────────────────────────────────────
+
+if total_laps_written == 0:
     print("\nNo valid rows to write — check Bronze data.")
 else:
-    silver_sdf = spark.createDataFrame(all_silver_rows, schema=TEL_SILVER_SCHEMA)
-
-    # ── Join labels from Gold feature store ───────────────────────────────────
-    if has_labels:
-        silver_sdf = silver_sdf.join(
-            labels_df.withColumnRenamed("race_position", "label_position_gold"),
-            on=["season", "event", "driver"],
-            how="left",
-        ).drop("label_position").withColumnRenamed("label_position_gold", "label_position")
-
-    # ── Write Silver Parquet, partitioned by season ───────────────────────────
-    (
-        silver_sdf
-        .write
-        .mode("overwrite")
-        .partitionBy("season")
-        .parquet(SILVER_PATH)
-    )
 
     print(f"\n{'='*60}")
     print(f"Silver written to: {SILVER_PATH}")
     print(f"  Sessions processed : {sessions_ok}")
     print(f"  Sessions skipped   : {sessions_skipped}")
     print(f"  Laps rejected      : {laps_rejected:,}")
-    print(f"  Laps written       : {len(all_silver_rows):,}")
+    print(f"  Laps written       : {total_laps_written:,}")
 
     # ── Verification ──────────────────────────────────────────────────────────
     verify = spark.read.schema(TEL_SILVER_SCHEMA).parquet(SILVER_PATH)

@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader, random_split
 try:
     PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
 except NameError:
-    PROJECT_ROOT = pathlib.Path("/Workspace/Repos/pitwall")
+    PROJECT_ROOT = pathlib.Path.cwd()
 
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -22,10 +22,10 @@ from config import TELEMETRY_CLEAN_PATH, BASE_PATH, TEL_SEASONS, ENCODER_HPARAMS
 
 # ── PATHS ─────────────────────────────────────────────────────────────────────
 
-SILVER_PATH     = f"{TELEMETRY_CLEAN_PATH}/silver"
-PRETRAIN_CKPT   = f"{BASE_PATH}/models/mae_checkpoint.pt"
-FINETUNE_CKPT   = f"{BASE_PATH}/models/mae_finetune_checkpoint.pt"
-FINETUNED_MODEL = f"{BASE_PATH}/models/mae_finetuned.pt"
+SILVER_PATH     = str(TELEMETRY_CLEAN_PATH / "silver")
+PRETRAIN_CKPT   = str(BASE_PATH / "models" / "mae_checkpoint.pt")
+FINETUNE_CKPT   = str(BASE_PATH / "models" / "mae_finetune_checkpoint.pt")
+FINETUNED_MODEL = str(BASE_PATH / "models" / "mae_finetuned.pt")
 
 # ── HYPERPARAMETERS ───────────────────────────────────────────────────────────
 
@@ -41,7 +41,7 @@ FINETUNE_CFG = dict(
     val_fraction        = 0.1,
     num_workers         = 2,
     pin_memory          = True,
-    n_classes           = 20,   # race positions 1–20
+    n_classes           = 30,   # race positions 1-25 (supports P21, P22)
 )
 
 # ENCODER_HPARAMS imported from config.py — single source of truth shared with 09 and 11.
@@ -53,14 +53,14 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Device: {device}")
 
 # ── DATASET — LABELLED LAPS ONLY ─────────────────────────────────────────────
-# Fine-tuning needs race_position labels. We pull Race and Qualifying sessions
-# since those have the most reliable labels from our Gold feature store.
+# Fine-tuning needs race_position labels. We pull pre-race sessions 
+# to ensure the model learns to predict the race without data leakage.
 
 print(f"\nLoading Silver (labelled laps only) from: {SILVER_PATH}")
 dataset = F1TelemetryDataset(
     silver_path    = SILVER_PATH,
     seasons        = TEL_SEASONS,
-    session_types  = ["R", "Q"],   # best label coverage
+    session_types  = ["FP1", "FP2", "FP3", "Q", "SQ", "S"],   # pre-race sessions
     labelled_only  = True,
 )
 

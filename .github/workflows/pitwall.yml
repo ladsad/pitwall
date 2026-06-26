@@ -1,0 +1,61 @@
+name: Pitwall Race Weekend
+on:
+  schedule:
+    # Friday 14:00 UTC (post-FP1), Saturday 16:00 (post-Quali), Sunday 15:00 (post-Race)
+    - cron: "0 14 * * 5"
+    - cron: "0 16 * * 6"
+    - cron: "0 15 * * 0"
+  workflow_dispatch:
+    inputs:
+      pipeline:
+        description: "Pipeline to run"
+        default: "weekend_rf"
+        type: choice
+        options:
+          - weekend_rf
+          - weekend_mae
+          - tel_backfill
+
+jobs:
+  predict:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+      PIPELINE: ${{ github.event.inputs.pipeline || 'weekend_rf' }}
+      JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Cache FastF1 data
+        uses: actions/cache@v4
+        with:
+          path: .cache/fastf1
+          key: fastf1-${{ hashFiles('config.py') }}
+          restore-keys: fastf1-
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run pipeline
+        run: python run_pipeline.py
+
+      - name: Upload predictions artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: predictions-${{ github.run_number }}
+          path: |
+            data/predictions/
+            dashboard/public/predictions.json

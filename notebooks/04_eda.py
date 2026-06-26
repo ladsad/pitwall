@@ -5,8 +5,7 @@ import sys
 try:
     PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
 except NameError:
-    # Running as a Databricks notebook — __file__ is not defined
-    PROJECT_ROOT = pathlib.Path("/Workspace/Repos/pitwall")
+    PROJECT_ROOT = pathlib.Path.cwd()
 
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -25,7 +24,7 @@ print(f"Reading Gold from: {FEATURES_PATH}")
 #  LOAD GOLD 
 
 gold_df = (
-    spark.read.format("delta").load(FEATURES_PATH)
+    spark.read.parquet(str(FEATURES_PATH))
          .filter(F.col("season") == SEASON)
 )
 

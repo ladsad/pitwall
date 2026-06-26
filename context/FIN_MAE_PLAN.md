@@ -1,6 +1,6 @@
 # Fin-MAE F1: Implementation Plan
 
-> **Stack**: FastF1 · PySpark · Delta/Parquet · PyTorch · Databricks Community Edition (free)  
+> **Stack**: FastF1 · PySpark · Parquet/Parquet · PyTorch · Local + Supabase + Google Colab  
 > **Storage root**: `/Volumes/workspace/default/pitwall/`  
 > **Compute**: Single-node CE cluster (K80 or T4 GPU, 15 GB RAM)  
 > **Architecture**: 1D PatchTST-style Masked Autoencoder — not GAF/Spectrogram
@@ -14,12 +14,12 @@ Existing pipeline (01–06)            New MAE pipeline (07–11)
 ──────────────────────────           ──────────────────────────
 01_ingest.py   ──► Bronze            07_tel_ingest.py     ──► Telemetry Bronze (Parquet)
 02_clean.py    ──► Silver            08_tel_preprocess.py ──► Telemetry Silver (Parquet)
-03_features.py ──► Gold (Delta)      09_mae_pretrain.py   ──► mae_checkpoint.pt
+03_features.py ──► Gold (Parquet)      09_mae_pretrain.py   ──► mae_checkpoint.pt
 05_train.py    ──► RF/GBT model      10_mae_finetune.py   ──► mae_finetuned.pt
-06_predict.py  ──► Predictions       11_mae_predict.py    ──► Predictions (Delta, model_version='mae')
+06_predict.py  ──► Predictions       11_mae_predict.py    ──► Predictions (Parquet, model_version='mae')
 ```
 
-Both pipelines share: `config.py` · `utils/spark_session.py` · the same `PREDICTIONS_PATH` Delta table (different `model_version` values).  
+Both pipelines share: `config.py` · `utils/spark_session.py` · the same `PREDICTIONS_PATH` Parquet table (different `model_version` values).  
 The existing notebooks are **untouched**.
 
 ---
@@ -36,7 +36,7 @@ The existing notebooks are **untouched**.
 | 3 — Model | `utils/mae_model.py` | ✅ Done | `PatchEmbedding1D`, `MAEEncoder`, `MAEDecoder`, `F1MAE`, `F1PositionHead` |
 | 3 — Pretrain | `09_mae_pretrain.py` | ✅ Done | Cosine LR, per-epoch checkpoint, CSV log, resumes on CE restart |
 | 4 — Finetune | `10_mae_finetune.py` | ✅ Done | Two-phase (linear probe → full FT), inverse-freq class weights, top-3 accuracy |
-| 5 — Predict | `11_mae_predict.py` | ✅ Done | Delta write, `model_version='mae'`, comparison vs RF/GBT |
+| 5 — Predict | `11_mae_predict.py` | ✅ Done | Parquet write, `model_version='mae'`, comparison vs RF/GBT |
 
 ---
 
@@ -110,7 +110,7 @@ ENCODER_HPARAMS = dict(
 
 ## Phase 2 — Preprocessing & Normalisation (`08_tel_preprocess.py`)
 
-**Goal**: Resample all laps to fixed length N=1024 on the distance axis, normalise, filter invalids, write Silver tensors, join race-position labels from the existing Gold Delta table.
+**Goal**: Resample all laps to fixed length N=1024 on the distance axis, normalise, filter invalids, write Silver tensors, join race-position labels from the existing Gold Parquet table.
 
 ### Lap filter criteria
 
@@ -266,7 +266,7 @@ Checkpoint is written **after every epoch** (not just on improvement). On CE clu
 Silver Parquet filtered to `season=SEASON, event=EVENT`. One prediction per driver using their first (pace-sorted) valid lap.
 
 ### Output
-Written to the **same `PREDICTIONS_PATH` Delta table** as `06_predict.py`, with `model_version = 'mae'`. This allows direct comparison in the same table and keeps the dashboard queryable without schema changes.
+Written to the **same `PREDICTIONS_PATH` Parquet table** as `06_predict.py`, with `model_version = 'mae'`. This allows direct comparison in the same table and keeps the dashboard queryable without schema changes.
 
 ```sql
 -- Query both models for the same event
@@ -277,7 +277,7 @@ ORDER BY model_version, predicted_position
 ```
 
 ### Comparison block
-After writing, `11_mae_predict.py` reads the existing RF/GBT predictions (using Delta format, `model_version LIKE 'base_r%'`) and prints a side-by-side exact/top-3 accuracy table if post-race Gold data is available.
+After writing, `11_mae_predict.py` reads the existing RF/GBT predictions (using Parquet format, `model_version LIKE 'base_r%'`) and prints a side-by-side exact/top-3 accuracy table if post-race Gold data is available.
 
 ---
 
@@ -287,7 +287,7 @@ After writing, `11_mae_predict.py` reads the existing RF/GBT predictions (using 
 /Volumes/workspace/default/pitwall/
 ├── raw/                          ← existing (01_ingest.py output)
 ├── clean/                        ← existing (02_clean.py output)
-├── features/                     ← existing Gold Delta (03_features.py output)
+├── features/                     ← existing Gold Parquet (03_features.py output)
 ├── models/
 │   ├── qualifying_r##/           ← existing RF/GBT models (05_train.py)
 │   ├── base_r##/                 ← existing RF/GBT models (05_train.py)
@@ -295,7 +295,7 @@ After writing, `11_mae_predict.py` reads the existing RF/GBT predictions (using 
 │   ├── mae_finetune_checkpoint.pt← rolling fine-tuning checkpoint (per epoch)
 │   ├── mae_finetuned.pt          ← best fine-tuned model (used by 11)
 │   └── mae_train_log.csv         ← epoch loss log (append-only)
-├── predictions/                  ← Delta table shared by 06 and 11
+├── predictions/                  ← Parquet table shared by 06 and 11
 └── telemetry/
     ├── raw/                      ← Bronze Parquet (07_tel_ingest.py)
     │   └── season={y}/event={gp}/session={s}/
@@ -325,7 +325,7 @@ f1-pyspark-analytics/
 │   ├── 08_tel_preprocess.py      ✅ implemented
 │   ├── 09_mae_pretrain.py        ✅ implemented — imports ENCODER_HPARAMS from config
 │   ├── 10_mae_finetune.py        ✅ implemented — imports ENCODER_HPARAMS from config
-│   └── 11_mae_predict.py         ✅ implemented — Delta write, correct RF comparison
+│   └── 11_mae_predict.py         ✅ implemented — Parquet write, correct RF comparison
 └── utils/
     ├── __init__.py               ✅ unchanged
     ├── mae_model.py              ✅ implemented
@@ -345,13 +345,13 @@ f1-pyspark-analytics/
 # requirements.txt additions needed
 scipy    # 08_tel_preprocess.py — distance-axis resampling
 torch    # 09, 10, 11 — MAE training and inference
-# pyarrow — already ships with Databricks Runtime; no install needed
+# pyarrow — already ships with Local Python Environment; no install needed
 # fastf1  — already in requirements.txt from 01_ingest.py
 ```
 
 ---
 
-## Execution Order on Databricks CE
+## Execution Order on Local/GitHub Actions CE
 
 ```
 ── One-time historical backfill (~2 seasons) ──────────────────────────────────
@@ -365,7 +365,7 @@ torch    # 09, 10, 11 — MAE training and inference
 ── Per race weekend (same cadence as 01 → 06) ─────────────────────────────────
 07_tel_ingest.py        set TEL_SEASONS = [SEASON] in config temporarily
 08_tel_preprocess.py    same
-11_mae_predict.py       reads mae_finetuned.pt; writes to PREDICTIONS_PATH Delta
+11_mae_predict.py       reads mae_finetuned.pt; writes to PREDICTIONS_PATH Parquet
 ```
 
 > [!TIP]

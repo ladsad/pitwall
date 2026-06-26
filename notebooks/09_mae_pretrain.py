@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader, random_split
 try:
     PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
 except NameError:
-    PROJECT_ROOT = pathlib.Path("/Workspace/Repos/pitwall")
+    PROJECT_ROOT = pathlib.Path.cwd()
 
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -23,9 +23,11 @@ from config import TELEMETRY_CLEAN_PATH, BASE_PATH, TEL_SEASONS, ENCODER_HPARAMS
 
 # ── PATHS ─────────────────────────────────────────────────────────────────────
 
-SILVER_PATH = f"{TELEMETRY_CLEAN_PATH}/silver"
-CKPT_PATH   = f"{BASE_PATH}/models/mae_checkpoint.pt"
-LOG_PATH    = f"{BASE_PATH}/models/mae_train_log.csv"
+SILVER_PATH = str(TELEMETRY_CLEAN_PATH / "silver")
+CKPT_PATH   = str(BASE_PATH / "models" / "mae_checkpoint.pt")
+LOG_PATH    = str(BASE_PATH / "models" / "mae_train_log.csv")
+
+os.makedirs(os.path.dirname(CKPT_PATH), exist_ok=True)
 
 # ── HYPERPARAMETERS ───────────────────────────────────────────────────────────
 # Loaded from config.py — single source of truth shared with 10 and 11.

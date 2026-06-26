@@ -1,4 +1,8 @@
-fastf1>=3.3.0
-pyspark>=3.5.0
-delta-spark>=3.1.0
-numpy>=1.26.0
+# Pitwall — Python Dependencies
+
+pyspark>=3.5
+fastf1>=3.4
+supabase>=2.0
+torch>=2.0
+numpy
+pandas

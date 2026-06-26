@@ -2,11 +2,10 @@
 11_mae_predict.py — PRIMARY PREDICTION NOTEBOOK
 ─────────────────────────────────────────────────
 Runs the fine-tuned F1MAE encoder on the current race weekend's telemetry,
-writes predictions to the shared PREDICTIONS_PATH Delta table (model_version='mae'),
-and exports predictions.json for the dashboard.
+writes predictions to Parquet + Supabase, and exports predictions.json.
 
 Prerequisites (per race weekend):
-  01_ingest.py → 02_clean.py → 03_features.py   (Gold Delta — for labels)
+  01_ingest.py → 02_clean.py → 03_features.py   (Gold — for labels)
   07_tel_ingest.py → 08_tel_preprocess.py        (Silver telemetry)
   [09_mae_pretrain.py + 10_mae_finetune.py — one-time historical training]
 
@@ -25,7 +24,7 @@ from pyspark.sql import functions as F
 try:
     PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
 except NameError:
-    PROJECT_ROOT = pathlib.Path("/Workspace/Repos/pitwall")
+    PROJECT_ROOT = pathlib.Path.cwd()
 
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -38,6 +37,7 @@ from utils.predict_utils import (
     build_payload,
     write_dashboard_json,
 )
+from utils.db import upsert_predictions
 from config import (
     SEASON, EVENT, ROUND_NUMBER,
     BASE_PATH, TELEMETRY_CLEAN_PATH, PREDICTIONS_PATH, FEATURES_PATH,
@@ -47,8 +47,8 @@ from config import (
 
 spark = get_spark_session("pitwall-mae-predict")
 
-SILVER_PATH     = f"{TELEMETRY_CLEAN_PATH}/silver"
-FINETUNED_MODEL = f"{BASE_PATH}/models/mae_finetuned.pt"
+SILVER_PATH     = str(TELEMETRY_CLEAN_PATH / "silver")
+FINETUNED_MODEL = str(BASE_PATH / "models" / "mae_finetuned.pt")
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Device: {device}")
@@ -62,10 +62,10 @@ if not os.path.exists(FINETUNED_MODEL):
         "  MAE MODEL NOT YET TRAINED\n"
         "=" * 65 + "\n"
         f"  Fine-tuned model not found at:\n    {FINETUNED_MODEL}\n\n"
-        "  The MAE pipeline requires ~20–45 hours of compute on CE\n"
+        "  The MAE pipeline requires ~20–45 hours of compute\n"
         "  before it can generate predictions.\n\n"
         "  ► FOR TODAY'S RACE: run 06_predict.py (RF/GBT baseline)\n\n"
-        "  ► TO ENABLE MAE FOR FUTURE RACES, run in order on CE:\n"
+        "  ► TO ENABLE MAE FOR FUTURE RACES, run in order:\n"
         "    1. 07_tel_ingest.py     (~6–10 hrs, restartable)\n"
         "    2. 08_tel_preprocess.py (~1–2 hrs)\n"
         "    3. 09_mae_pretrain.py   (~15–38 hrs, checkpointed per epoch)\n"
@@ -79,7 +79,7 @@ mae_backbone = F1MAE(**ENCODER_HPARAMS)
 model = F1PositionHead(
     encoder   = mae_backbone.encoder,
     d_model   = ENCODER_HPARAMS["d_model"],
-    n_classes = 20,
+    n_classes = 30,
 ).to(device)
 
 model.load_state_dict(torch.load(FINETUNED_MODEL, map_location=device))
@@ -96,6 +96,7 @@ try:
              .filter(
                  (F.col("season") == SEASON)
                  & (F.col("event") == EVENT)
+                 & (F.col("session_type") != "R")
              )
     )
     row_count = silver_sdf.count()
@@ -122,34 +123,86 @@ silver_pdf["channels"] = silver_pdf["channels"].apply(
 
 driver_tensors = {}
 for driver, group in silver_pdf.groupby("driver"):
-    best_row = group.sort_values("lap_number").iloc[0]
+    # Enforce: Driver MUST have participated in Qualifying (or Sprint Qualifying)
+    valid_sessions = group["session_type"].values
+    if "Q" not in valid_sessions and "SQ" not in valid_sessions:
+        continue
+        
+    # Use their qualifying lap for the prediction tensor
+    q_laps = group[group["session_type"].isin(["Q", "SQ"])]
+    best_row = q_laps.sort_values("lap_number").iloc[0]
+    
     arr = best_row["channels"]
     if arr.shape == (6, 1024):
         driver_tensors[driver] = torch.from_numpy(arr)
 
 print(f"\nDrivers with valid telemetry: {len(driver_tensors)}")
 
+# Fetch Team mappings from Gold Features to ensure correct dashboard colors
+driver_teams = {}
+try:
+    teams_sdf = spark.read.parquet(str(FEATURES_PATH)).filter(
+        (F.col("season") == SEASON) & (F.col("event") == EVENT)
+    ).select("driver", "team").distinct()
+    for row in teams_sdf.collect():
+        if row.driver and row.team:
+            driver_teams[row.driver] = row.team
+except Exception as e:
+    print(f"Warning: Could not fetch team mappings: {e}")
+
 # ── INFERENCE ─────────────────────────────────────────────────────────────────
 
+channel_names = ["Speed", "Throttle", "Brake", "RPM", "Gear", "DRS"]
+global_impact_sums = {ch: 0.0 for ch in channel_names}
 results = []
 
 with torch.no_grad():
     for driver, tensor in driver_tensors.items():
         x      = tensor.unsqueeze(0).to(device)                          # (1, 6, 1024)
-        logits = model(x)                                                  # (1, 20)
-        probs  = torch.softmax(logits, dim=1).squeeze(0).cpu().numpy()    # (20,)
+        logits = model(x)                                                  # (1, 30)
+        probs  = torch.softmax(logits, dim=1).squeeze(0).cpu().numpy()    # (30,)
 
         pred_position = int(np.argmax(probs)) + 1
         win_prob      = float(probs[0])
         entropy       = float(-np.sum(probs * np.log(probs + 1e-9)))
-        uncertainty   = float(entropy / np.log(20))
+        uncertainty   = float(entropy / np.log(30))
+
+        # Occlusion Sensitivity (Driver-Specific Interpretability)
+        driver_impacts = []
+        for c_idx, c_name in enumerate(channel_names):
+            x_occ = x.clone()
+            x_occ[0, c_idx, :] = 0.0  # Zero out channel
+            logits_occ = model(x_occ)
+            probs_occ = torch.softmax(logits_occ, dim=1).squeeze(0).cpu().numpy()
+            
+            impact = abs(win_prob - float(probs_occ[0]))
+            driver_impacts.append({"feature": f"{c_name} Telemetry", "importance": impact})
+            global_impact_sums[c_name] += impact
+
+        # Normalize driver-specific impacts to sum to 1.0
+        local_total = sum(item["importance"] for item in driver_impacts) + 1e-9
+        for item in driver_impacts:
+            item["importance"] = round(item["importance"] / local_total, 4)
+        driver_impacts.sort(key=lambda k: k["importance"], reverse=True)
 
         results.append({
             "driver":             driver,
+            "team":               driver_teams.get(driver, "Unknown"),
             "predicted_position": pred_position,
             "win_probability":    win_prob,
             "uncertainty":        uncertainty,
+            "feature_importance": driver_impacts,
         })
+
+# Global Average for the dashboard's main overview
+feature_importance = []
+global_total = sum(global_impact_sums.values()) + 1e-9
+for ch in channel_names:
+    feature_importance.append({
+        "feature": f"{ch} Telemetry",
+        "importance": round(global_impact_sums[ch] / global_total, 4)
+    })
+feature_importance.sort(key=lambda x: x["importance"], reverse=True)
 
 results.sort(key=lambda r: r["win_probability"], reverse=True)
 for rank, r in enumerate(results, start=1):
@@ -160,33 +213,47 @@ print(f"  {'─'*6} {'─'*8} {'─'*10} {'─'*13}")
 for r in results:
     print(f"  {r['driver']:<6} {r['predicted_position']:>8} {r['win_probability']:>10.4f} {r['uncertainty']:>13.4f}")
 
-# ── WRITE PREDICTIONS DELTA ───────────────────────────────────────────────────
+# ── WRITE PREDICTIONS PARQUET ─────────────────────────────────────────────────
+
+import json
+_flat_trend = json.dumps({"label": "flat", "value": None})
 
 pred_sdf = spark.createDataFrame(
     [
         (
-            r["driver"], "MAE", EVENT, ROUND_NUMBER, SEASON,
+            r["driver"], r["team"], EVENT, ROUND_NUMBER, SEASON,
             "mae", r["predicted_position"],
             r["win_probability"], r["uncertainty"],
+            "{}", _flat_trend, json.dumps(r["feature_importance"]),
+            datetime.now(timezone.utc).isoformat()
         )
         for r in results
     ],
     schema=(
         "driver string, team string, event string, round int, season int, "
         "model_version string, predicted_position int, "
-        "win_probability float, uncertainty float"
+        "win_probability float, uncertainty float, "
+        "sessions string, trend string, feature_importance string, "
+        "generated_at string"
     ),
 )
 
-(
-    pred_sdf.write
-    .format("delta")
-    .mode("overwrite")
-    .option("replaceWhere", f"season = {SEASON} AND event = '{EVENT}' AND model_version = 'mae'")
-    .save(PREDICTIONS_PATH)
-)
+pred_output = str(PREDICTIONS_PATH / f"season={SEASON}" / f"event={EVENT}" / "model=mae")
+pred_sdf.write.mode("overwrite").parquet(pred_output)
+print(f"\nMAE predictions written to: {pred_output}")
 
-print(f"\nMAE predictions written to: {PREDICTIONS_PATH} (model_version='mae')")
+# ── WRITE TO SUPABASE ─────────────────────────────────────────────────────────
+
+try:
+    rows_for_db = [row.asDict() for row in pred_sdf.collect()]
+    for r in rows_for_db:
+        r["sessions"] = json.loads(r["sessions"])
+        r["trend"]    = json.loads(r["trend"])
+        r["feature_importance"] = json.loads(r["feature_importance"])
+    upsert_predictions(rows_for_db)
+    print("Predictions upserted to Supabase.")
+except Exception as e:
+    print(f"Supabase write skipped (set SUPABASE_URL/KEY to enable): {e}")
 
 # ── COMPARISON WITH RF/GBT ────────────────────────────────────────────────────
 
@@ -194,7 +261,7 @@ print("\n── Comparison: MAE vs RF/GBT (if post-race results available) ─�
 
 try:
     rf_preds_sdf = (
-        spark.read.format("delta").load(PREDICTIONS_PATH)
+        spark.read.parquet(str(PREDICTIONS_PATH))
              .filter(
                  (F.col("season") == SEASON)
                  & (F.col("event") == EVENT)
@@ -209,7 +276,7 @@ try:
         print("  No post-race RF predictions found (race may not have completed yet).")
     else:
         actuals_sdf = (
-            spark.read.format("delta").load(FEATURES_PATH)
+            spark.read.parquet(str(FEATURES_PATH))
                  .filter(
                      (F.col("season") == SEASON)
                      & (F.col("event") == EVENT)
@@ -250,7 +317,7 @@ try:
     history, season_acc = season_history(
         spark, PREDICTIONS_PATH, FEATURES_PATH,
         season=SEASON,
-        model_version_filter=F.col("model_version") == "mae",
+        model_version_filter="mae",
     )
     print(f"\nMAE winner accuracy this season: {sum(1 for h in history if h['top3_hit'])}/{len(history)} ({season_acc:.1%})")
 except Exception as e:
@@ -270,16 +337,17 @@ payload = build_payload(
     predictions=[
         {
             "driver":             r["driver"],
-            "team":               None,
+            "team":               r["team"],
             "predicted_position": r["predicted_position"],
             "win_probability":    round(r["win_probability"], 4),
             "uncertainty":        round(r["uncertainty"], 4),
             "trend":              {"label": "flat", "value": None},
             "sessions":           {},
+            "feature_importance": r["feature_importance"],
         }
         for r in results
     ],
-    feature_importance=[],
+    feature_importance=feature_importance,
     history=history,
 )
 

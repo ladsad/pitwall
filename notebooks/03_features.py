@@ -5,8 +5,7 @@ import sys
 try:
     PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
 except NameError:
-    # Running as a Databricks notebook — __file__ is not defined
-    PROJECT_ROOT = pathlib.Path("/Workspace/Repos/pitwall")
+    PROJECT_ROOT = pathlib.Path.cwd()
 
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -26,10 +25,7 @@ print(f"Output (Gold)  : {FEATURES_PATH}")
 
 #  READ SILVER 
 
-silver_df = (
-    spark.read.format("delta").load(CLEAN_PATH)
-         .filter((F.col("season") == SEASON) & (F.col("event") == EVENT))
-)
+silver_df = spark.read.parquet(str(CLEAN_PATH / f"season={SEASON}" / f"event={EVENT}"))
 
 print(f"\nSilver rows loaded: {silver_df.count():,}")
 silver_df.groupBy("session_type").count().orderBy("session_type").show()
@@ -102,7 +98,7 @@ base_df = base_df.withColumn(
 
 try:
     prior_gold_df = (
-        spark.read.format("delta").load(FEATURES_PATH)
+        spark.read.parquet(str(FEATURES_PATH))
              .filter(
                  (F.col("season") == SEASON)
                  & (F.col("round_number") < ROUND_NUMBER)
@@ -181,7 +177,7 @@ try:
     results_df = (
         spark.read
              .schema(RESULTS_SCHEMA)
-             .parquet(f"{RESULTS_PATH}/season={SEASON}/event={EVENT}")
+             .parquet(str(RESULTS_PATH / f"season={SEASON}" / f"event={EVENT}"))
              .select(
                  F.col("Driver").alias("driver"),
                  F.col("Position").alias("race_position")
@@ -220,27 +216,23 @@ gold_df = base_df.select(
 
 print(f"\nGold rows to write: {gold_df.count():,}")
 
-#  WRITE GOLD DELTA
+#  WRITE GOLD PARQUET (replacing Delta)
+
+gold_output = str(FEATURES_PATH / f"season={SEASON}" / f"event={EVENT}")
 
 (
     gold_df
     .write
-    .format("delta")
     .mode("overwrite")
-    .option("mergeSchema", "true")
-    .option("replaceWhere", f"season = {SEASON} AND event = '{EVENT}'")
-    .partitionBy("season", "event", "session_type")
-    .save(FEATURES_PATH)
+    .partitionBy("session_type")
+    .parquet(gold_output)
 )
 
-print(f"Gold Delta written to: {FEATURES_PATH}")
+print(f"Gold Parquet written to: {gold_output}")
 
 #  VERIFICATION 
 
-verify_df = (
-    spark.read.format("delta").load(FEATURES_PATH)
-         .filter((F.col("season") == SEASON) & (F.col("event") == EVENT))
-)
+verify_df = spark.read.parquet(gold_output)
 
 print("\nRow counts by session_type (Gold — this event):")
 verify_df.groupBy("session_type").count().orderBy("session_type").show()

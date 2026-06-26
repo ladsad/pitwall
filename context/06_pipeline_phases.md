@@ -10,25 +10,25 @@
 
 ### Phase 2 — Cleaning (`02_clean.py`)
 - **Input**: Bronze Parquet
-- **Output**: `clean/` (Silver Delta)
+- **Output**: `clean/` (Silver Parquet)
 - **Key steps**: drop critical nulls, 107% lap filter, cast + validate types
 
 ### Phase 3 — Feature Engineering (`03_features.py`)
-- **Input**: Silver Delta
-- **Output**: `features/` (Gold Delta) — lap-level granularity
+- **Input**: Silver Parquet
+- **Output**: `features/` (Gold Parquet) — lap-level granularity
 - **Features**: `lap_time_delta`, `consistency_score`, `best_sector_combo`, `tyre_deg_rate`, `pace_vs_teammate`, `pace_trend`
 
 ### Phase 4 — EDA (`04_eda.py`)  *(dev only — not in production pipeline)*
 - Spark SQL correlation analysis, circuit-specific patterns, team vs driver pace gap
 
 ### Phase 5 — Training (`05_train.py`)
-- **Input**: Gold Delta + race results (labels)
+- **Input**: Gold Parquet + race results (labels)
 - **Output**: `models/base_r{N}/` or `models/qualifying_r{N}/`
 - MLlib Pipeline: VectorAssembler → StringIndexer → GBTClassifier (sample_weight = recency × session_type)
 
 ### Phase 6 — Prediction + Export (`06_predict.py`)
 - **Input**: versioned MLlib model + Gold features for current weekend
-- **Output**: `predictions/` Delta + `dashboard/public/predictions.json`
+- **Output**: `predictions/` Parquet + `dashboard/public/predictions.json`
 - Bootstrap uncertainty (N=20, 80%), session scores, pace trend, feature importance
 - Uses `utils/predict_utils.py` for shared logic
 
@@ -49,7 +49,7 @@
 ### Phase 9 — MAE Pre-training (`09_mae_pretrain.py`)
 - **Input**: Telemetry Silver (all seasons, all sessions — unlabelled OK)
 - **Output**: `models/mae_checkpoint.pt` (rolling, per-epoch), `models/mae_train_log.csv`
-- 200 epochs total, cosine LR, CE-resumable — safe across Databricks 2-hr sessions
+- 200 epochs total, cosine LR, CE-resumable — safe across Local/GitHub Actions 2-hr sessions
 
 ### Phase 10 — MAE Fine-tuning (`10_mae_finetune.py`)
 - **Input**: `mae_checkpoint.pt` + labelled Telemetry Silver (race_position known)
@@ -58,7 +58,7 @@
 
 ### Phase 11 — MAE Prediction + Export (`11_mae_predict.py`)
 - **Input**: `mae_finetuned.pt` + Telemetry Silver for current race weekend
-- **Output**: `predictions/` Delta (`model_version='mae'`) + `dashboard/public/predictions.json`
+- **Output**: `predictions/` Parquet (`model_version='mae'`) + `dashboard/public/predictions.json`
 - Entropy-based uncertainty; comparison block vs RF/GBT if post-race results available
 - Uses `utils/predict_utils.py` for shared logic
 

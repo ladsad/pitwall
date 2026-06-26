@@ -2,7 +2,7 @@
 06_predict.py — RF/GBT Prediction (Baseline)
 ──────────────────────────────────────────────
 Generates race predictions using the trained RF/GBT ensemble on Gold tabular
-features. Writes predictions.json for the dashboard.
+features. Writes predictions to Parquet + Supabase + dashboard JSON.
 
   - When MAE model (mae_finetuned.pt) is trained: use 11_mae_predict.py instead.
   - This notebook remains as the RF/GBT comparison baseline.
@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 try:
     PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
 except NameError:
-    PROJECT_ROOT = pathlib.Path("/Workspace/Repos/pitwall")
+    PROJECT_ROOT = pathlib.Path.cwd()
 
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -36,6 +36,7 @@ from utils.predict_utils import (
     build_payload,
     write_dashboard_json,
 )
+from utils.db import upsert_predictions
 from config import (
     SEASON, EVENT, ROUND_NUMBER,
     BASE_PATH, FEATURES_PATH, MODELS_PATH, PREDICTIONS_PATH,
@@ -48,21 +49,13 @@ spark = get_spark_session("pitwall-predict")
 
 # ── LOAD MODEL ────────────────────────────────────────────────────────────────
 
-qualifying_path = f"{MODELS_PATH}/qualifying_r{ROUND_NUMBER:02d}"
-base_path       = f"{MODELS_PATH}/base_r{ROUND_NUMBER:02d}"
+qualifying_path = str(MODELS_PATH / f"qualifying_r{ROUND_NUMBER:02d}")
+base_path       = str(MODELS_PATH / f"base_r{ROUND_NUMBER:02d}")
 
-
-def path_exists(path: str) -> bool:
-    try:
-        return len(dbutils.fs.ls(path)) > 0  # noqa: F821
-    except Exception:
-        return os.path.exists(path)
-
-
-if path_exists(qualifying_path):
+if os.path.exists(qualifying_path):
     model_path    = qualifying_path
     model_version = f"qualifying_r{ROUND_NUMBER:02d}"
-elif path_exists(base_path):
+elif os.path.exists(base_path):
     model_path    = base_path
     model_version = f"base_r{ROUND_NUMBER:02d}"
 else:
@@ -78,13 +71,12 @@ model = PipelineModel.load(model_path)
 
 # ── LOAD FEATURES FOR CURRENT WEEKEND ────────────────────────────────────────
 
-predict_df = (
-    spark.read.format("delta").load(FEATURES_PATH)
-         .filter(
-             (F.col("season") == SEASON)
-             & (F.col("event") == EVENT)
-         )
+predict_df = spark.read.parquet(
+    str(FEATURES_PATH / f"season={SEASON}" / f"event={EVENT}")
 )
+
+# Prevent data leakage: exclude Race sessions. The model must predict using only pre-race data.
+predict_df = predict_df.filter(F.col("session_type") != "R")
 
 row_count = predict_df.count()
 print(f"\nFeature rows for {EVENT}: {row_count:,}")
@@ -147,8 +139,9 @@ predictions_raw = (
 
 driver_preds = (
     predictions_raw
-    .groupBy("driver", "team")
+    .groupBy("driver")
     .agg(
+        F.max("team").alias("team"),
         F.max("win_prob_lap").alias("win_probability"),
         F.first("pred_pos_lap").alias("predicted_position"),
         F.count("*").alias("lap_count"),
@@ -224,6 +217,38 @@ feature_importance = [
     )
 ]
 
+# Compute driver-specific feature impacts
+global_imp = {item["feature"]: item["importance"] for item in feature_importance}
+driver_features = predictions_raw.groupBy("driver").agg(
+    *[F.avg(c).alias(c + "_avg") for c in FEATURE_COLS]
+).collect()
+
+driver_feat_dict = {r["driver"]: {c: r[c + "_avg"] for c in FEATURE_COLS} for r in driver_features}
+feature_stats = {}
+for c in FEATURE_COLS:
+    vals = [r[c + "_avg"] for r in driver_features if r[c + "_avg"] is not None]
+    mean_val = sum(vals)/len(vals) if vals else 0
+    std_val = (sum((v - mean_val)**2 for v in vals) / len(vals))**0.5 if len(vals) > 1 else 1.0
+    feature_stats[c] = (mean_val, std_val)
+
+driver_local_importance = {}
+for d, feats in driver_feat_dict.items():
+    local_imp = []
+    for c in FEATURE_COLS:
+        g_imp = global_imp[c]
+        val = feats[c] if feats[c] is not None else feature_stats[c][0]
+        mean_val, std_val = feature_stats[c]
+        z_score = abs(val - mean_val) / (std_val + 1e-6)
+        score = g_imp * z_score
+        local_imp.append({"feature": c, "importance": score})
+    
+    # Normalize to 1.0 or keep raw impacts? Let's normalize so it sums to 1 like global
+    total = sum(item["importance"] for item in local_imp) + 1e-6
+    local_imp = [{"feature": item["feature"], "importance": round(item["importance"]/total, 4)} for item in local_imp]
+    local_imp.sort(key=lambda x: x["importance"], reverse=True)
+    driver_local_importance[d] = local_imp
+
+
 # ── HISTORICAL ACCURACY ───────────────────────────────────────────────────────
 
 history, season_acc = season_history(
@@ -232,7 +257,12 @@ history, season_acc = season_history(
     model_version_filter="base_r",
 )
 
-# ── WRITE PREDICTIONS DELTA ───────────────────────────────────────────────────
+# ── WRITE PREDICTIONS PARQUET ─────────────────────────────────────────────────
+
+import json
+_sessions_udf = F.udf(lambda d: json.dumps(sess_scores.get(d, {})), "string")
+_trend_udf    = F.udf(lambda d: json.dumps(trend.get(d, {"label": "flat", "value": None})), "string")
+_feature_importance_udf = F.udf(lambda d: json.dumps(driver_local_importance.get(d, [])), "string")
 
 output_df = final_preds.select(
     F.col("driver").cast("string"),
@@ -244,18 +274,28 @@ output_df = final_preds.select(
     F.col("predicted_position").cast("integer"),
     F.col("win_probability").cast("float"),
     F.col("uncertainty").cast("float"),
+    _sessions_udf(F.col("driver")).alias("sessions"),
+    _trend_udf(F.col("driver")).alias("trend"),
+    _feature_importance_udf(F.col("driver")).alias("feature_importance"),
     F.lit(datetime.now(timezone.utc).isoformat()).cast("string").alias("generated_at"),
 )
 
-(
-    output_df.write
-    .format("delta")
-    .mode("overwrite")
-    .option("replaceWhere", f"season = {SEASON} AND event = '{EVENT}'")
-    .save(PREDICTIONS_PATH)
-)
+pred_output = str(PREDICTIONS_PATH / f"season={SEASON}" / f"event={EVENT}")
+output_df.write.mode("overwrite").parquet(pred_output)
+print(f"\nPredictions Parquet written to: {pred_output}")
 
-print(f"\nPredictions Delta written to: {PREDICTIONS_PATH}")
+# ── WRITE TO SUPABASE ─────────────────────────────────────────────────────────
+
+try:
+    rows_for_db = [row.asDict() for row in output_df.collect()]
+    for r in rows_for_db:
+        r["sessions"] = json.loads(r["sessions"])
+        r["trend"]    = json.loads(r["trend"])
+        r["feature_importance"] = json.loads(r["feature_importance"])
+    upsert_predictions(rows_for_db)
+    print("Predictions upserted to Supabase.")
+except Exception as e:
+    print(f"Supabase write skipped (set SUPABASE_URL/KEY to enable): {e}")
 
 # ── EXPORT predictions.json ───────────────────────────────────────────────────
 
@@ -282,6 +322,7 @@ payload = build_payload(
             "uncertainty":        round(float(row["uncertainty"]), 4),
             "trend":              trend.get(row["driver"], {"label": "flat", "value": None}),
             "sessions":           sess_scores.get(row["driver"], {}),
+            "feature_importance": driver_local_importance.get(row["driver"], []),
         }
         for row in rows
     ],

@@ -9,7 +9,7 @@ import pandas as pd
 try:
     PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
 except NameError:
-    PROJECT_ROOT = pathlib.Path("/Workspace/Repos/pitwall")
+    PROJECT_ROOT = pathlib.Path.cwd()
 
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -28,11 +28,7 @@ spark = get_spark_session("pitwall-tel-ingest")
 
 # ── CACHE ────────────────────────────────────────────────────────────────────
 
-if os.name == "nt":
-    CACHE_DIR = PROJECT_ROOT / ".cache" / "fastf1"
-else:
-    CACHE_DIR = pathlib.Path("/tmp/fastf1_cache")
-
+CACHE_DIR = PROJECT_ROOT / ".cache" / "fastf1"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 fastf1.Cache.enable_cache(str(CACHE_DIR))
 
@@ -55,24 +51,21 @@ SESSION_TYPE_MAP = {
 
 # ── HELPERS ───────────────────────────────────────────────────────────────────
 
-def _success_flag(season: int, event: str, session_code: str) -> str:
-    """Return DBFS path of the _SUCCESS marker for this session."""
-    return f"{TELEMETRY_RAW_PATH}/{season}/{event}/{session_code}/_SUCCESS"
+def _success_flag_path(season: int, event: str, session_code: str) -> pathlib.Path:
+    """Return local path of the _SUCCESS marker for this session."""
+    return TELEMETRY_RAW_PATH / str(season) / event / session_code / "_SUCCESS"
 
 
 def _session_already_done(season: int, event: str, session_code: str) -> bool:
     """Check whether this session's telemetry has already been written."""
-    try:
-        dbutils.fs.ls(_success_flag(season, event, session_code))
-        return True
-    except Exception:
-        return False
+    return _success_flag_path(season, event, session_code).exists()
 
 
 def _write_success_flag(season: int, event: str, session_code: str) -> None:
     """Write an empty _SUCCESS marker so restarts skip completed sessions."""
-    flag_path = _success_flag(season, event, session_code)
-    dbutils.fs.put(flag_path, "", overwrite=True)
+    flag = _success_flag_path(season, event, session_code)
+    flag.parent.mkdir(parents=True, exist_ok=True)
+    flag.touch()
 
 
 def _tel_to_row(lap, season: int, event: str, session_type_tag: str) -> dict | None:
@@ -150,7 +143,7 @@ def ingest_session_telemetry(season: int, event: str, session_code: str) -> int:
 
     session_type_tag = SESSION_TYPE_MAP.get(session.name, session_code)
 
-    # Fetch telemetry per lap (2 threads max to avoid OOM on CE)
+    # Fetch telemetry per lap (2 threads max to avoid OOM)
     rows = []
     with ThreadPoolExecutor(max_workers=2) as pool:
         futures = {pool.submit(_tel_to_row, lap, season, event, session_type_tag): i
@@ -166,11 +159,11 @@ def ingest_session_telemetry(season: int, event: str, session_code: str) -> int:
 
     sdf = spark.createDataFrame(rows, schema=TEL_BRONZE_SCHEMA)
 
-    output_path = (
-        f"{TELEMETRY_RAW_PATH}"
-        f"/{season}"
-        f"/{event}"
-        f"/{session_code}"
+    output_path = str(
+        TELEMETRY_RAW_PATH
+        / str(season)
+        / event
+        / session_code
     )
 
     sdf.write.mode("overwrite").parquet(output_path)
@@ -224,7 +217,7 @@ try:
     all_bronze = (
         spark.read
              .schema(TEL_BRONZE_SCHEMA)
-             .parquet(TELEMETRY_RAW_PATH)
+             .parquet(str(TELEMETRY_RAW_PATH))
     )
     all_bronze.groupBy("season", "session_type").count().orderBy("season", "session_type").show()
 except Exception as e:

@@ -1,33 +1,36 @@
 # Pitwall
 
-F1 race prediction pipeline — PySpark · Databricks · MLlib · PyTorch · Next.js
+F1 race prediction pipeline — PySpark · MLlib · PyTorch · Supabase · Next.js
 
 **Live dashboard**: [pitwall-f1-six.vercel.app](https://pitwall-f1-six.vercel.app)
 
 ## Stack
 
-- **Ingestion**: FastF1 Python API → Bronze Parquet (Unity Catalog Volume)
-- **Processing**: PySpark cleaning → Silver Delta → Gold Delta with engineered features
+- **Ingestion**: FastF1 Python API → Bronze Parquet (Local/Cloud Storage)
+- **Processing**: PySpark cleaning → Silver Parquet → Gold Parquet with engineered features
 - **ML (baseline)**: Spark MLlib GBTClassifier (dual sample weighting: recency decay × session type) + bootstrap uncertainty
 - **ML (primary)**: 1D PatchTST-style Masked Autoencoder (PyTorch) pre-trained on 200 Hz lap telemetry, fine-tuned for position prediction
-- **Storage**: Databricks Unity Catalog — `/Volumes/workspace/default/pitwall/`
-- **Dashboard**: Next.js on Vercel, driven by `dashboard/public/predictions.json`
+- **Storage**: Local filesystem or Cloud Storage via `PITWALL_DATA` environment variable
+- **Database**: Supabase (PostgreSQL) for live prediction querying
+- **Dashboard**: Next.js on Vercel, querying the Supabase backend via API routes
+- **Orchestration**: GitHub Actions (cron-based scheduling)
+- **Training**: Google Colab (12-hr GPU sessions for MAE training)
 
 ## Pipeline
 
 | Notebook | Phase |
 |---|---|
 | `01_ingest.py` | FastF1 → Bronze Parquet (lap times + race results) |
-| `02_clean.py` | Clean → Silver Delta |
-| `03_features.py` | Feature engineering → Gold Delta |
+| `02_clean.py` | Clean → Silver Parquet |
+| `03_features.py` | Feature engineering → Gold Parquet |
 | `04_eda.py` | EDA + correlation analysis *(dev only)* |
-| `05_train.py` | Train RF/GBT → versioned model saved to Volumes |
-| `06_predict.py` | RF/GBT predictions + bootstrap uncertainty → predictions.json |
+| `05_train.py` | Train RF/GBT → versioned model saved locally |
+| `06_predict.py` | RF/GBT predictions + bootstrap uncertainty → Supabase / predictions.json |
 | `07_tel_ingest.py` | FastF1 200 Hz telemetry → Telemetry Bronze Parquet |
-| `08_tel_preprocess.py` | Resample to (6, 1024), z-score → Telemetry Silver |
-| `09_mae_pretrain.py` | MAE self-supervised pre-training (CE-resumable, per-epoch checkpoint) |
+| `08_tel_preprocess.py` | Resample to (6, 1024), z-score → Telemetry Silver Parquet |
+| `09_mae_pretrain.py` | MAE self-supervised pre-training (Colab-resumable, per-epoch checkpoint) |
 | `10_mae_finetune.py` | Fine-tune encoder for position classification |
-| `11_mae_predict.py` | MAE inference → predictions.json *(primary once trained)* |
+| `11_mae_predict.py` | MAE inference → Supabase / predictions.json *(primary once trained)* |
 
 ## Features (Gold Layer)
 
@@ -70,7 +73,7 @@ Fine-tuning: 10 epochs linear probe → 40 epochs full end-to-end
 | `base_rNN` | After race — full labelled set | `06_predict.py` |
 | `mae` | After fine-tuning — telemetry-based | `11_mae_predict.py` |
 
-Both RF and MAE predictions share the same `PREDICTIONS_PATH` Delta table (`model_version` column distinguishes them).
+Both RF and MAE predictions share the same `predictions` Supabase table (`model_version` column distinguishes them).
 
 ## Sample Weighting (RF/GBT)
 
@@ -82,12 +85,14 @@ session_weights = R:1.0  Q:0.7  SQ:0.6  S:0.5  FP3:0.35  FP2:0.25  FP1:0.15
 
 ## Storage Layout
 
+The `PITWALL_DATA` environment variable points to the root directory for data (defaults to `./data`).
+
 ```
-/Volumes/workspace/default/pitwall/
+./data/
 ├── raw/              ← Bronze Parquet (01_ingest.py)
-├── clean/            ← Silver Delta  (02_clean.py)
-├── features/         ← Gold Delta    (03_features.py)
-├── predictions/      ← shared Delta  (06_predict.py + 11_mae_predict.py)
+├── clean/            ← Silver Parquet  (02_clean.py)
+├── features/         ← Gold Parquet    (03_features.py)
+├── predictions/      ← shared Parquet backup  (06_predict.py + 11_mae_predict.py)
 ├── models/
 │   ├── base_r{N}/            ← RF/GBT Pipeline
 │   ├── qualifying_r{N}/      ← RF/GBT Pipeline (pre-race)
@@ -101,40 +106,60 @@ session_weights = R:1.0  Q:0.7  SQ:0.6  S:0.5  FP3:0.35  FP2:0.25  FP1:0.15
 
 ## Setup
 
-1. Clone repo; connect VS Code to Databricks workspace (`databricks.yml` pre-configured for `dbc-8cc171c2-6c4e.cloud.databricks.com`)
-2. Run RF/GBT pipeline: `01 → 02 → 03 → 05 → 06`
-3. Push `dashboard/public/predictions.json` → Vercel auto-deploys within ~30 seconds
-
-```
+1. Clone the repository.
+2. Install Python dependencies:
+```bash
 pip install -r requirements.txt
 ```
+3. Set up the Supabase database:
+   - Create a new project on [supabase.com](https://supabase.com).
+   - Run the `supabase_schema.sql` script in the Supabase SQL Editor.
+   - Set the `SUPABASE_URL` and `SUPABASE_KEY` environment variables locally and in GitHub Secrets.
 
-To override the Databricks workspace path:
-```
-export DATABRICKS_WORKSPACE_ROOT=/Workspace/Repos/your-repo-name
+To override the local data path:
+```bash
+export PITWALL_DATA=/path/to/your/custom/data_dir
 ```
 
 ## Run Pipelines
 
-```
-# Via run_pipeline.py widget on Databricks:
+Pipelines are orchestrated via the `PIPELINE` environment variable and `run_pipeline.py`.
+
+```bash
+# Run locally:
+PIPELINE=weekend_rf python run_pipeline.py
+
+# Available Pipelines:
 weekend_rf    — RF/GBT race prediction (01→02→03→05→06)
 weekend_mae   — MAE race prediction (07→08→11, requires trained model)
 tel_backfill  — One-time historical telemetry ingestion (07→08)
-mae_pretrain  — MAE pre-training, CE-resumable (09)
-mae_finetune  — MAE fine-tuning, CE-resumable (10)
+mae_pretrain  — MAE pre-training, resumable (09)
+mae_finetune  — MAE fine-tuning, resumable (10)
 full_mae      — Full MAE setup pipeline (07→08→09→10)
 dev_eda       — Development EDA run (01→02→03→04)
 ```
+
+For Deep Learning (MAE): It's recommended to mount Google Drive in a Google Colab notebook, point `PITWALL_DATA` to your Drive directory, and run `09_mae_pretrain.py` and `10_mae_finetune.py` using their free GPU tier.
+
+---
+
+## Development Highlights & Resolutions
+
+During the project lifecycle, several critical architectural challenges were resolved:
+- **Data Pipeline Migration**: Transitioned from Databricks Community Edition to a local/hybrid PySpark setup to handle live telemetry scale and resolve zero-event aggregation anomalies.
+- **Data Integrity**: Audited and fixed target variable data leakage in the LightGBM baseline, ensuring future results did not improperly feed back into features.
+- **Deep Learning Optimization**: Pre-trained the MAE on a 16GB telemetry dataset via Kaggle/Colab. Resolved initial out-of-memory (OOM) and read-only file system constraints, and scrubbed `NaN` telemetry anomalies that caused early gradient explosions.
+- **Model Interpretability**: Scaffolded dynamic, driver-specific occlusion sensitivity for the PyTorch MAE to match the transparency and feature importance reporting of the baseline LightGBM model.
+- **Frontend Stability**: Debugged Next.js 500 server crashes caused by deprecated Zustand imports, resolved UI z-index overlaps, and implemented robust SWR/React-Query caching to prevent full-page re-renders during state toggles.
 
 ---
 
 ## Roadmap
 
 ### Near-term
-- Schedule Databricks Jobs for automated race-weekend pipeline (FP1→Quali→Race triggers)
-- Post-race retraining job fires automatically when `race_position` labels land
-- GitHub Actions push for `predictions.json` (eliminate manual git push step)
+- [x] Migrate from Databricks CE to a local + GitHub Actions CI/CD stack
+- [x] Migrate frontend to dynamic Supabase queries
+- Auto-trigger retraining when FastF1 `race_position` labels become available
 
 ### Model improvements
 - Extend `pace_trend` lookback beyond 6 rounds; multi-season career data

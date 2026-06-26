@@ -17,8 +17,7 @@ import sys
 try:
     PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
 except NameError:
-    # Running as a Databricks notebook — __file__ is not defined
-    PROJECT_ROOT = pathlib.Path("/Workspace/Repos/pitwall")
+    PROJECT_ROOT = pathlib.Path.cwd()
 
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -37,7 +36,7 @@ spark = get_spark_session("pitwall-train")
 
 #  MODEL VERSION 
 
-gold_df = spark.read.format("delta").load(FEATURES_PATH).filter(
+gold_df = spark.read.parquet(str(FEATURES_PATH)).filter(
     F.col("season") == SEASON
 )
 
@@ -49,14 +48,21 @@ current_round_has_result = (
 )
 
 model_version = f"base_r{ROUND_NUMBER:02d}" if current_round_has_result else f"qualifying_r{ROUND_NUMBER:02d}"
-model_path    = f"{MODELS_PATH}/{model_version}"
+model_path    = str(MODELS_PATH / model_version)
 
 print(f"Training : Season {SEASON} | Round: {ROUND_NUMBER} | Version: {model_version}")
 print(f"Model output: {model_path}")
 
 #  TRAINING DATA 
 
-train_df = gold_df.filter(F.col("race_position").isNotNull())
+train_df = gold_df.filter(
+    (F.col("race_position").isNotNull()) & 
+    (F.col("round_number") <= ROUND_NUMBER)
+)
+
+# Prevent data leakage: exclude Race sessions from training data.
+# The model must learn to predict race_position using only pre-race sessions.
+train_df = train_df.filter(F.col("session_type") != "R")
 
 row_count = train_df.count()
 print(f"\nTraining rows (labelled): {row_count:,}")
@@ -255,6 +261,6 @@ if holdout_count > 0:
     else:
         print("WARNING: GBT does not outperform LR baseline — review features/weights.")
 
-lr_model_path = f"{MODELS_PATH}/lr_baseline_r{ROUND_NUMBER:02d}"
+lr_model_path = str(MODELS_PATH / f"lr_baseline_r{ROUND_NUMBER:02d}")
 lr_model.write().overwrite().save(lr_model_path)
 print(f"LR baseline saved to: {lr_model_path}")

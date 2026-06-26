@@ -15,8 +15,7 @@ import sys
 try:
     PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
 except NameError:
-    # Running as a Databricks notebook — __file__ is not defined
-    PROJECT_ROOT = pathlib.Path("/Workspace/Repos/pitwall")
+    PROJECT_ROOT = pathlib.Path.cwd()
 
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -26,11 +25,7 @@ from utils.spark_session import get_spark_session
 from utils.schema import BRONZE_SCHEMA, RESULTS_SCHEMA
 from utils.transforms import timedeltas_to_seconds
 
-if os.name == "nt":
-    CACHE_DIR = PROJECT_ROOT / ".cache" / "fastf1"
-else:
-    CACHE_DIR = pathlib.Path("/tmp/fastf1_cache")
-
+CACHE_DIR = PROJECT_ROOT / ".cache" / "fastf1"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 fastf1.Cache.enable_cache(str(CACHE_DIR))
 
@@ -108,11 +103,11 @@ for session_code in SESSION_TYPES:
 
         print(f"  {sdf.count()} laps loaded for {session_type_tag}")
 
-        output_path = (
-            f"{RAW_PATH}"
-            f"/season={SEASON}"
-            f"/event={EVENT}"
-            f"/session={session_code}"
+        output_path = str(
+            RAW_PATH
+            / f"season={SEASON}"
+            / f"event={EVENT}"
+            / f"session={session_code}"
         )
 
         sdf.write.mode("overwrite").parquet(output_path)
@@ -136,7 +131,7 @@ print(f"  Sessions ingested : {ingested_sessions}")
 print(f"  Sessions skipped  : {skipped_sessions}")
 
 if ingested_sessions:
-    verify_path = f"{RAW_PATH}/season={SEASON}/event={EVENT}"
+    verify_path = str(RAW_PATH / f"season={SEASON}" / f"event={EVENT}")
     verify_df = spark.read.schema(BRONZE_SCHEMA).parquet(verify_path)
     print(f"\nRow counts by session_type:")
     verify_df.groupBy("session_type").count().orderBy("session_type").show()
@@ -193,7 +188,7 @@ else:
 
     results_sdf = spark.createDataFrame(results_pdf, schema=RESULTS_SCHEMA)
 
-    results_output_path = f"{RESULTS_PATH}/season={SEASON}/event={EVENT}"
+    results_output_path = str(RESULTS_PATH / f"season={SEASON}" / f"event={EVENT}")
     results_sdf.write.mode("overwrite").parquet(results_output_path)
 
     print(f"  {results_sdf.count()} driver results written to: {results_output_path}")

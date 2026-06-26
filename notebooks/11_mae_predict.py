@@ -134,6 +134,7 @@ print(f"\nDrivers with valid telemetry: {len(driver_tensors)}")
 
 channel_names = ["Speed", "Throttle", "Brake", "RPM", "Gear", "DRS"]
 channel_impacts = {ch: [] for ch in channel_names}
+results = []
 
 with torch.no_grad():
     for driver, tensor in driver_tensors.items():

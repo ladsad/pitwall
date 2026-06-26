@@ -1,6 +1,4 @@
 import { createClient } from "@supabase/supabase-js";
-import fs from 'fs';
-import path from 'path';
 
 export const dynamic = 'force-dynamic';
 
@@ -75,8 +73,10 @@ export async function GET(request) {
     let sessionsUsed = [];
     let recencyLambda = null;
     try {
-        const jsonPath = path.join(process.cwd(), 'public', 'predictions.json');
-        const localData = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+        const origin = new URL(request.url).origin;
+        const res = await fetch(`${origin}/predictions.json`);
+        if (!res.ok) throw new Error("Failed to fetch predictions.json from origin");
+        const localData = await res.json();
         if (localData.season_accuracy) {
             localAccuracy = {
                 top3_pct: localData.season_accuracy.top3_pct || 0,

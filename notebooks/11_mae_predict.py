@@ -130,6 +130,18 @@ for driver, group in silver_pdf.groupby("driver"):
 
 print(f"\nDrivers with valid telemetry: {len(driver_tensors)}")
 
+# Fetch Team mappings from Gold Features to ensure correct dashboard colors
+driver_teams = {}
+try:
+    teams_sdf = spark.read.parquet(str(FEATURES_PATH)).filter(
+        (F.col("season") == SEASON) & (F.col("event") == EVENT)
+    ).select("driver", "team").distinct()
+    for row in teams_sdf.collect():
+        if row.driver and row.team:
+            driver_teams[row.driver] = row.team
+except Exception as e:
+    print(f"Warning: Could not fetch team mappings: {e}")
+
 # ── INFERENCE ─────────────────────────────────────────────────────────────────
 
 channel_names = ["Speed", "Throttle", "Brake", "RPM", "Gear", "DRS"]
@@ -158,6 +170,7 @@ with torch.no_grad():
 
         results.append({
             "driver":             driver,
+            "team":               driver_teams.get(driver, "Unknown"),
             "predicted_position": pred_position,
             "win_probability":    win_prob,
             "uncertainty":        uncertainty,
@@ -194,7 +207,7 @@ for r in results:
 pred_sdf = spark.createDataFrame(
     [
         (
-            r["driver"], "MAE", EVENT, ROUND_NUMBER, SEASON,
+            r["driver"], r["team"], EVENT, ROUND_NUMBER, SEASON,
             "mae", r["predicted_position"],
             r["win_probability"], r["uncertainty"],
         )
@@ -302,7 +315,7 @@ payload = build_payload(
     predictions=[
         {
             "driver":             r["driver"],
-            "team":               None,
+            "team":               r["team"],
             "predicted_position": r["predicted_position"],
             "win_probability":    round(r["win_probability"], 4),
             "uncertainty":        round(r["uncertainty"], 4),

@@ -1,5 +1,5 @@
 """
-utils/db.py — Supabase client for writing predictions and reading history.
+utils/db.py — Supabase client for writing and reading predictions.
 Replaces the old spark_session.py + dbutils-based file I/O.
 """
 
@@ -51,36 +51,3 @@ def upsert_predictions(records: list[dict]) -> None:
     ).execute()
 
 
-def upsert_history(records: list[dict]) -> None:
-    """Upsert season history rows into the 'race_history' table."""
-    sb = get_supabase()
-    clean_records = _clean_json(records)
-    sb.table("race_history").upsert(
-        clean_records,
-        on_conflict="season,event,model_version",
-    ).execute()
-
-
-def fetch_predictions(season: int, event: str, model_version: str | None = None) -> list[dict]:
-    """Fetch predictions for a given season/event from Supabase."""
-    sb = get_supabase()
-    query = (
-        sb.table("predictions")
-        .select("*")
-        .eq("season", season)
-        .eq("event", event)
-    )
-    if model_version:
-        query = query.eq("model_version", model_version)
-    result = query.order("win_probability", desc=True).execute()
-    return result.data
-
-
-def fetch_history(season: int, model_version_prefix: str | None = None) -> list[dict]:
-    """Fetch race history for a given season."""
-    sb = get_supabase()
-    query = sb.table("race_history").select("*").eq("season", season)
-    if model_version_prefix:
-        query = query.like("model_version", f"{model_version_prefix}%")
-    result = query.order("round").execute()
-    return result.data

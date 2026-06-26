@@ -37,7 +37,7 @@ from utils.predict_utils import (
     build_payload,
     write_dashboard_json,
 )
-from utils.db import upsert_predictions, upsert_history
+from utils.db import upsert_predictions
 from config import (
     SEASON, EVENT, ROUND_NUMBER,
     BASE_PATH, TELEMETRY_CLEAN_PATH, PREDICTIONS_PATH, FEATURES_PATH,
@@ -251,22 +251,7 @@ try:
         r["trend"]    = json.loads(r["trend"])
         r["feature_importance"] = json.loads(r["feature_importance"])
     upsert_predictions(rows_for_db)
-    
-    if history:
-        hist_for_db = []
-        for h in history:
-            hist_for_db.append({
-                "event": h["event"],
-                "round": h["round"],
-                "season": SEASON,
-                "model_version": "mae",
-                "predicted": h["predicted"],
-                "actual": h["actual"],
-                "top3_hit": h["top3_hit"]
-            })
-        upsert_history(hist_for_db)
-    
-    print("Predictions and History upserted to Supabase.")
+    print("Predictions upserted to Supabase.")
 except Exception as e:
     print(f"Supabase write skipped (set SUPABASE_URL/KEY to enable): {e}")
 

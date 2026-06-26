@@ -79,7 +79,7 @@ mae_backbone = F1MAE(**ENCODER_HPARAMS)
 model = F1PositionHead(
     encoder   = mae_backbone.encoder,
     d_model   = ENCODER_HPARAMS["d_model"],
-    n_classes = 20,
+    n_classes = 30,
 ).to(device)
 
 model.load_state_dict(torch.load(FINETUNED_MODEL, map_location=device))

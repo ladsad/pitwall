@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import TopBar from "../components/TopBar";
 import HeroStrip from "../components/HeroStrip";
 import DriverRanking from "../components/DriverRanking";
@@ -17,6 +17,8 @@ export default function Home() {
   const [events, setEvents] = useState([]);
   const [currentEvent, setCurrentEvent] = useState(null);
   const [currentModel, setCurrentModel] = useState("mae");
+  const [isLoading, setIsLoading] = useState(false);
+  const cache = useRef({});
 
   useEffect(() => {
     fetch("/api/events?season=2026")
@@ -43,7 +45,17 @@ export default function Home() {
   useEffect(() => {
     if (!currentEvent) return;
 
-    setData(null);
+    const cacheKey = `${currentEvent}_${currentModel}`;
+    if (cache.current[cacheKey]) {
+      const cachedData = cache.current[cacheKey];
+      setData(cachedData);
+      if (cachedData.predictions && cachedData.predictions.length > 0) {
+        setSelectedDriver(cachedData.predictions[0]);
+      }
+      return;
+    }
+
+    setIsLoading(true);
     setError(null);
     fetch(`/api/predictions?season=2026&event=${encodeURIComponent(currentEvent)}&model=${encodeURIComponent(currentModel)}`)
       .then((res) => {
@@ -51,12 +63,14 @@ export default function Home() {
         return res.json();
       })
       .then((json) => {
+        cache.current[cacheKey] = json;
         setData(json);
         if (json.predictions && json.predictions.length > 0) {
           setSelectedDriver(json.predictions[0]);
         }
       })
-      .catch((err) => setError(err.message));
+      .catch((err) => setError(err.message))
+      .finally(() => setIsLoading(false));
   }, [currentEvent, currentModel]);
 
   if (error) {
@@ -120,7 +134,7 @@ export default function Home() {
         accuracy={data.season_accuracy}
       />
 
-      <div style={{ backgroundColor: '#141414' }} className="flex-1 grid grid-cols-1 lg:grid-cols-[65%_35%] gap-[1px]">
+      <div style={{ backgroundColor: '#141414' }} className={`flex-1 grid grid-cols-1 lg:grid-cols-[65%_35%] gap-[1px] transition-opacity duration-300 ${isLoading ? "opacity-50 pointer-events-none" : "opacity-100"}`}>
         {/* Left Column */}
         <div className="flex flex-col gap-[1px]">
           <div className="h-[400px]">

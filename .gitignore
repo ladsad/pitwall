@@ -12,3 +12,4 @@ context/
 data/
 # Windows PySpark dependencies
 hadoop/
+chats/

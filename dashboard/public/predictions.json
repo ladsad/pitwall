@@ -1,6 +1,6 @@
 {
   "model_version": "base_r07",
-  "generated_at": "2026-06-24T08:56:41.938240+00:00",
+  "generated_at": "2026-06-26T11:21:41.494767+00:00",
   "event": "Barcelona Grand Prix",
   "round": 7,
   "season": 2026,
@@ -11,8 +11,8 @@
     "Q"
   ],
   "season_accuracy": {
-    "top3_pct": 0.2625,
-    "races": 8
+    "top3_pct": 0.2714,
+    "races": 7
   },
   "recency_lambda": 0.15,
   "predictions": [
@@ -1592,13 +1592,6 @@
       "actual": "ANT",
       "top3_hit": true,
       "round": 4
-    },
-    {
-      "event": "Canadian Grand Prix",
-      "predicted": "ANT",
-      "actual": "ANT",
-      "top3_hit": true,
-      "round": 5
     },
     {
       "event": "Canadian Grand Prix",

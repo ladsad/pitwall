@@ -132,18 +132,28 @@ print(f"\nDrivers with valid telemetry: {len(driver_tensors)}")
 
 # ── INFERENCE ─────────────────────────────────────────────────────────────────
 
-results = []
+channel_names = ["Speed", "Throttle", "Brake", "RPM", "Gear", "DRS"]
+channel_impacts = {ch: [] for ch in channel_names}
 
 with torch.no_grad():
     for driver, tensor in driver_tensors.items():
         x      = tensor.unsqueeze(0).to(device)                          # (1, 6, 1024)
-        logits = model(x)                                                  # (1, 20)
-        probs  = torch.softmax(logits, dim=1).squeeze(0).cpu().numpy()    # (20,)
+        logits = model(x)                                                  # (1, 30)
+        probs  = torch.softmax(logits, dim=1).squeeze(0).cpu().numpy()    # (30,)
 
         pred_position = int(np.argmax(probs)) + 1
         win_prob      = float(probs[0])
         entropy       = float(-np.sum(probs * np.log(probs + 1e-9)))
-        uncertainty   = float(entropy / np.log(20))
+        uncertainty   = float(entropy / np.log(30))
+
+        # Occlusion Sensitivity (Interpretability)
+        for c_idx, c_name in enumerate(channel_names):
+            x_occ = x.clone()
+            x_occ[0, c_idx, :] = 0.0  # Zero out (since data is z-score normalized, 0 = mean)
+            logits_occ = model(x_occ)
+            probs_occ = torch.softmax(logits_occ, dim=1).squeeze(0).cpu().numpy()
+            impact = abs(win_prob - float(probs_occ[0]))
+            channel_impacts[c_name].append(impact)
 
         results.append({
             "driver":             driver,
@@ -151,6 +161,23 @@ with torch.no_grad():
             "win_probability":    win_prob,
             "uncertainty":        uncertainty,
         })
+
+# Average and normalize channel impacts for the dashboard
+feature_importance = []
+total_impact = 0.0
+avg_impacts = {}
+for ch in channel_names:
+    avg = float(np.mean(channel_impacts[ch])) if channel_impacts[ch] else 0.0
+    avg_impacts[ch] = avg
+    total_impact += avg
+
+if total_impact > 0:
+    for ch, avg in avg_impacts.items():
+        feature_importance.append({
+            "feature": f"{ch} Telemetry",
+            "importance": float(avg / total_impact)
+        })
+feature_importance.sort(key=lambda x: x["importance"], reverse=True)
 
 results.sort(key=lambda r: r["win_probability"], reverse=True)
 for rank, r in enumerate(results, start=1):
@@ -283,7 +310,7 @@ payload = build_payload(
         }
         for r in results
     ],
-    feature_importance=[],
+    feature_importance=feature_importance,
     history=history,
 )
 

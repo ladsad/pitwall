@@ -123,7 +123,15 @@ silver_pdf["channels"] = silver_pdf["channels"].apply(
 
 driver_tensors = {}
 for driver, group in silver_pdf.groupby("driver"):
-    best_row = group.sort_values("lap_number").iloc[0]
+    # Enforce: Driver MUST have participated in Qualifying (or Sprint Qualifying)
+    valid_sessions = group["session_type"].values
+    if "Q" not in valid_sessions and "SQ" not in valid_sessions:
+        continue
+        
+    # Use their qualifying lap for the prediction tensor
+    q_laps = group[group["session_type"].isin(["Q", "SQ"])]
+    best_row = q_laps.sort_values("lap_number").iloc[0]
+    
     arr = best_row["channels"]
     if arr.shape == (6, 1024):
         driver_tensors[driver] = torch.from_numpy(arr)

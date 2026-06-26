@@ -16,6 +16,7 @@ export default function Home() {
   const [error, setError] = useState(null);
   const [events, setEvents] = useState([]);
   const [currentEvent, setCurrentEvent] = useState(null);
+  const [currentModel, setCurrentModel] = useState("mae");
 
   useEffect(() => {
     fetch("/api/events?season=2026")
@@ -44,7 +45,7 @@ export default function Home() {
 
     setData(null);
     setError(null);
-    fetch(`/api/predictions?season=2026&event=${encodeURIComponent(currentEvent)}`)
+    fetch(`/api/predictions?season=2026&event=${encodeURIComponent(currentEvent)}&model=${encodeURIComponent(currentModel)}`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to load predictions.json");
         return res.json();
@@ -56,7 +57,7 @@ export default function Home() {
         }
       })
       .catch((err) => setError(err.message));
-  }, [currentEvent]);
+  }, [currentEvent, currentModel]);
 
   if (error) {
     return (
@@ -78,24 +79,38 @@ export default function Home() {
     <div className="min-h-screen flex flex-col bg-[#000000]">
       <TopBar version={data.model_version} generatedAt={data.generated_at} />
       
-      {/* Event Selector */}
-      <div className="bg-[#111] border-b border-[#222] px-4 py-2 flex items-center gap-4">
-        <label className="text-xs text-[#888] uppercase tracking-wider">Select Event:</label>
-        <select 
-          className="bg-[#222] text-white text-sm px-3 py-1 rounded border border-[#333] outline-none focus:border-[#e10600] transition-colors"
-          value={currentEvent || ""}
-          onChange={(e) => setCurrentEvent(e.target.value)}
-        >
-          {events.length > 0 ? (
-            events.map((ev) => (
-              <option key={ev.event} value={ev.event}>
-                Round {ev.round}: {ev.event}
-              </option>
-            ))
-          ) : (
-            <option value={currentEvent}>{currentEvent}</option>
-          )}
-        </select>
+      {/* Selectors */}
+      <div className="bg-[#111] border-b border-[#222] px-4 py-2 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <label className="text-xs text-[#888] uppercase tracking-wider">Select Event:</label>
+          <select 
+            className="bg-[#222] text-white text-sm px-3 py-1 rounded border border-[#333] outline-none focus:border-[#e10600] transition-colors"
+            value={currentEvent || ""}
+            onChange={(e) => setCurrentEvent(e.target.value)}
+          >
+            {events.length > 0 ? (
+              events.map((ev) => (
+                <option key={ev.event} value={ev.event}>
+                  Round {ev.round}: {ev.event}
+                </option>
+              ))
+            ) : (
+              <option value={currentEvent}>{currentEvent}</option>
+            )}
+          </select>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <label className="text-xs text-[#888] uppercase tracking-wider">Prediction Model:</label>
+          <select 
+            className="bg-[#222] text-white text-sm px-3 py-1 rounded border border-[#333] outline-none focus:border-[#e10600] transition-colors"
+            value={currentModel}
+            onChange={(e) => setCurrentModel(e.target.value)}
+          >
+            <option value="mae">MAE (Deep Learning)</option>
+            <option value="rf">Random Forest (Baseline)</option>
+          </select>
+        </div>
       </div>
 
       <HeroStrip

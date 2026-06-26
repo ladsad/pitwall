@@ -50,8 +50,12 @@ export async function GET(request) {
     // Find all model versions available for this event
     const modelVersions = [...new Set(predictions.map((p) => p.model_version))];
     
-    // Choose which model to display (prefer "mae", then fallback to "base_", then first available)
+    // Choose which model to display
     let selectedModel = searchParams.get("model");
+    if (selectedModel === "rf") {
+      selectedModel = modelVersions.find(m => m.startsWith("base_"));
+    }
+    
     if (!selectedModel || !modelVersions.includes(selectedModel)) {
       if (modelVersions.includes("mae")) {
         selectedModel = "mae";

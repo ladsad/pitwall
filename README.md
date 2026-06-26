@@ -143,6 +143,17 @@ For Deep Learning (MAE): It's recommended to mount Google Drive in a Google Cola
 
 ---
 
+## Development Highlights & Resolutions
+
+During the project lifecycle, several critical architectural challenges were resolved:
+- **Data Pipeline Migration**: Transitioned from Databricks Community Edition to a local/hybrid PySpark setup to handle live telemetry scale and resolve zero-event aggregation anomalies.
+- **Data Integrity**: Audited and fixed target variable data leakage in the LightGBM baseline, ensuring future results did not improperly feed back into features.
+- **Deep Learning Optimization**: Pre-trained the MAE on a 16GB telemetry dataset via Kaggle/Colab. Resolved initial out-of-memory (OOM) and read-only file system constraints, and scrubbed `NaN` telemetry anomalies that caused early gradient explosions.
+- **Model Interpretability**: Scaffolded dynamic, driver-specific occlusion sensitivity for the PyTorch MAE to match the transparency and feature importance reporting of the baseline LightGBM model.
+- **Frontend Stability**: Debugged Next.js 500 server crashes caused by deprecated Zustand imports, resolved UI z-index overlaps, and implemented robust SWR/React-Query caching to prevent full-page re-renders during state toggles.
+
+---
+
 ## Roadmap
 
 ### Near-term

@@ -212,19 +212,27 @@ for r in results:
 
 # ── WRITE PREDICTIONS PARQUET ─────────────────────────────────────────────────
 
+import json
+_fi_json = json.dumps(feature_importance)
+_flat_trend = json.dumps({"label": "flat", "value": None})
+
 pred_sdf = spark.createDataFrame(
     [
         (
             r["driver"], r["team"], EVENT, ROUND_NUMBER, SEASON,
             "mae", r["predicted_position"],
             r["win_probability"], r["uncertainty"],
+            "{}", _flat_trend, _fi_json,
+            datetime.now(timezone.utc).isoformat()
         )
         for r in results
     ],
     schema=(
         "driver string, team string, event string, round int, season int, "
         "model_version string, predicted_position int, "
-        "win_probability float, uncertainty float"
+        "win_probability float, uncertainty float, "
+        "sessions string, trend string, feature_importance string, "
+        "generated_at string"
     ),
 )
 
@@ -236,6 +244,10 @@ print(f"\nMAE predictions written to: {pred_output}")
 
 try:
     rows_for_db = [row.asDict() for row in pred_sdf.collect()]
+    for r in rows_for_db:
+        r["sessions"] = json.loads(r["sessions"])
+        r["trend"]    = json.loads(r["trend"])
+        r["feature_importance"] = json.loads(r["feature_importance"])
     upsert_predictions(rows_for_db)
     print("Predictions upserted to Supabase.")
 except Exception as e:
@@ -329,6 +341,7 @@ payload = build_payload(
             "uncertainty":        round(r["uncertainty"], 4),
             "trend":              {"label": "flat", "value": None},
             "sessions":           {},
+            "feature_importance": feature_importance,
         }
         for r in results
     ],

@@ -153,7 +153,7 @@ except Exception as e:
 # ── INFERENCE ─────────────────────────────────────────────────────────────────
 
 channel_names = ["Speed", "Throttle", "Brake", "RPM", "Gear", "DRS"]
-channel_impacts = {ch: [] for ch in channel_names}
+global_impact_sums = {ch: 0.0 for ch in channel_names}
 results = []
 
 with torch.no_grad():
@@ -167,14 +167,23 @@ with torch.no_grad():
         entropy       = float(-np.sum(probs * np.log(probs + 1e-9)))
         uncertainty   = float(entropy / np.log(30))
 
-        # Occlusion Sensitivity (Interpretability)
+        # Occlusion Sensitivity (Driver-Specific Interpretability)
+        driver_impacts = []
         for c_idx, c_name in enumerate(channel_names):
             x_occ = x.clone()
-            x_occ[0, c_idx, :] = 0.0  # Zero out (since data is z-score normalized, 0 = mean)
+            x_occ[0, c_idx, :] = 0.0  # Zero out channel
             logits_occ = model(x_occ)
             probs_occ = torch.softmax(logits_occ, dim=1).squeeze(0).cpu().numpy()
+            
             impact = abs(win_prob - float(probs_occ[0]))
-            channel_impacts[c_name].append(impact)
+            driver_impacts.append({"feature": f"{c_name} Telemetry", "importance": impact})
+            global_impact_sums[c_name] += impact
+
+        # Normalize driver-specific impacts to sum to 1.0
+        local_total = sum(item["importance"] for item in driver_impacts) + 1e-9
+        for item in driver_impacts:
+            item["importance"] = round(item["importance"] / local_total, 4)
+        driver_impacts.sort(key=lambda k: k["importance"], reverse=True)
 
         results.append({
             "driver":             driver,
@@ -182,23 +191,17 @@ with torch.no_grad():
             "predicted_position": pred_position,
             "win_probability":    win_prob,
             "uncertainty":        uncertainty,
+            "feature_importance": driver_impacts,
         })
 
-# Average and normalize channel impacts for the dashboard
+# Global Average for the dashboard's main overview
 feature_importance = []
-total_impact = 0.0
-avg_impacts = {}
+global_total = sum(global_impact_sums.values()) + 1e-9
 for ch in channel_names:
-    avg = float(np.mean(channel_impacts[ch])) if channel_impacts[ch] else 0.0
-    avg_impacts[ch] = avg
-    total_impact += avg
-
-if total_impact > 0:
-    for ch, avg in avg_impacts.items():
-        feature_importance.append({
-            "feature": f"{ch} Telemetry",
-            "importance": float(avg / total_impact)
-        })
+    feature_importance.append({
+        "feature": f"{ch} Telemetry",
+        "importance": round(global_impact_sums[ch] / global_total, 4)
+    })
 feature_importance.sort(key=lambda x: x["importance"], reverse=True)
 
 results.sort(key=lambda r: r["win_probability"], reverse=True)
@@ -213,7 +216,6 @@ for r in results:
 # ── WRITE PREDICTIONS PARQUET ─────────────────────────────────────────────────
 
 import json
-_fi_json = json.dumps(feature_importance)
 _flat_trend = json.dumps({"label": "flat", "value": None})
 
 pred_sdf = spark.createDataFrame(
@@ -222,7 +224,7 @@ pred_sdf = spark.createDataFrame(
             r["driver"], r["team"], EVENT, ROUND_NUMBER, SEASON,
             "mae", r["predicted_position"],
             r["win_probability"], r["uncertainty"],
-            "{}", _flat_trend, _fi_json,
+            "{}", _flat_trend, json.dumps(r["feature_importance"]),
             datetime.now(timezone.utc).isoformat()
         )
         for r in results
@@ -341,7 +343,7 @@ payload = build_payload(
             "uncertainty":        round(r["uncertainty"], 4),
             "trend":              {"label": "flat", "value": None},
             "sessions":           {},
-            "feature_importance": feature_importance,
+            "feature_importance": r["feature_importance"],
         }
         for r in results
     ],

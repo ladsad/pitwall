@@ -46,7 +46,7 @@ F1 race prediction pipeline — PySpark · MLlib · PyTorch · Supabase · Next.
 
 ## MAE Architecture
 
-![MAE Architecture (Dark Mode)](f1mae_diagram_dark.png)
+![MAE Architecture (Dark Mode)](assets/f1mae_diagram_dark.png)
 
 ```
 Input (B, 6, 1024)

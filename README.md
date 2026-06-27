@@ -46,6 +46,8 @@ F1 race prediction pipeline — PySpark · MLlib · PyTorch · Supabase · Next.
 
 ## MAE Architecture
 
+![MAE Architecture (Dark Mode)](f1mae_diagram_dark.png)
+
 ```
 Input (B, 6, 1024)
   │
@@ -123,11 +125,11 @@ export PITWALL_DATA=/path/to/your/custom/data_dir
 
 ## Run Pipelines
 
-Pipelines are orchestrated via the `PIPELINE` environment variable and `run_pipeline.py`.
+Pipelines are orchestrated via the `PIPELINE` environment variable and `scripts/run_pipeline.py`.
 
 ```bash
 # Run locally:
-PIPELINE=weekend_rf python run_pipeline.py
+PIPELINE=weekend_rf python scripts/run_pipeline.py
 
 # Available Pipelines:
 weekend_rf    — RF/GBT race prediction (01→02→03→05→06)

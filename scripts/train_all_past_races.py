@@ -51,7 +51,7 @@ def main():
             env['PYTHONIOENCODING'] = 'utf-8'
             
             try:
-                subprocess.run([sys.executable, 'run_pipeline.py'], env=env, check=True)
+                subprocess.run([sys.executable, 'scripts/run_pipeline.py'], env=env, check=True)
                 events_run += 1
             except subprocess.CalledProcessError as e:
                 print(f"Failed to run pipeline for {event_name}. Error: {e}")

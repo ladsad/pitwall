@@ -80,7 +80,7 @@ export async function GET(request) {
         if (localData.season_accuracy) {
             localAccuracy = {
                 top3_pct: localData.season_accuracy.top3_pct || 0,
-                races: history.length || localData.season_accuracy.races || 0
+                races: localData.history?.length || localData.season_accuracy.races || 0
             };
         }
         if (localData.feature_importance) {
@@ -116,7 +116,7 @@ export async function GET(request) {
             recencyLambda = localData.recency_lambda;
         }
     } catch (e) {
-        console.warn("Could not read local predictions.json, using fallback logic");
+        console.warn("Could not read local predictions.json, using fallback logic. Error:", e.message);
     }
 
     return Response.json({

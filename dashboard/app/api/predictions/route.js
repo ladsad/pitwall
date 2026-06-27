@@ -2,6 +2,16 @@ import { createClient } from "@supabase/supabase-js";
 
 export const dynamic = 'force-dynamic';
 
+const ACTUAL_WINNERS = {
+    "Australian Grand Prix": "RUS",
+    "Chinese Grand Prix": "ANT",
+    "Japanese Grand Prix": "ANT",
+    "Miami Grand Prix": "ANT",
+    "Canadian Grand Prix": "ANT",
+    "Monaco Grand Prix": "ANT",
+    "Barcelona Grand Prix": "HAM"
+};
+
 export async function GET(request) {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -87,28 +97,27 @@ export async function GET(request) {
             featureImportance = localData.feature_importance;
         }
 
-        if (localData.history && localData.history.length > 0) {
-            localHistory = localData.history.map(h => {
-                // Dynamically find the selected model's prediction for this event
-                const modelPreds = allSeasonData.filter(p => 
-                    p.event === h.event && 
-                    p.predicted_position === 1 && 
-                    (p.model_version === selectedModel || (selectedModel && selectedModel.startsWith("base_") && p.model_version.startsWith("base_")))
-                );
-                
-                let predictedDriver = h.predicted;
-                if (modelPreds.length > 0) {
-                    predictedDriver = modelPreds[0].driver;
-                }
-                
-                return {
-                    event: h.event,
-                    actual: h.actual,
-                    predicted: predictedDriver,
-                    top3_hit: predictedDriver === h.actual
-                };
-            });
-        }
+        // Dynamically build history table from hardcoded actual winners
+        localHistory = Object.entries(ACTUAL_WINNERS).map(([evt, actualDriver]) => {
+            const modelPreds = allSeasonData.filter(p => 
+                p.event === evt && 
+                p.predicted_position === 1 && 
+                (p.model_version === selectedModel || (selectedModel && selectedModel.startsWith("base_") && p.model_version.startsWith("base_")))
+            );
+            
+            let predictedDriver = "N/A";
+            if (modelPreds.length > 0) {
+                predictedDriver = modelPreds[0].driver;
+            }
+            
+            return {
+                event: evt,
+                actual: actualDriver,
+                predicted: predictedDriver,
+                top3_hit: predictedDriver === actualDriver
+            };
+        });
+        
         if (localData.sessions_used) {
             sessionsUsed = localData.sessions_used;
         }

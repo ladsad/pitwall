@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from 'framer-motion';
+import Image from 'next/image';
 
 export default function TopBar({ version, generatedAt }) {
   const dateObj = new Date(generatedAt);
@@ -15,9 +16,12 @@ export default function TopBar({ version, generatedAt }) {
       style={{ backgroundColor: '#111111', borderBottom: '1px solid #141414' }} 
       className="flex justify-between items-center px-4 py-3 sticky top-0 z-50"
     >
-      <div className="flex items-center gap-1 font-bold text-lg tracking-wider">
-        <span style={{ color: '#ffffff' }}>PIT</span>
-        <span style={{ color: '#e10600' }}>WALL</span>
+      <div className="flex items-center gap-3 font-bold text-lg tracking-wider">
+        <Image src="/logo.png" alt="Pitwall Logo" width={24} height={24} className="rounded-sm object-contain" />
+        <div className="flex items-center gap-0.5">
+          <span style={{ color: '#ffffff' }}>PIT</span>
+          <span style={{ color: '#e10600' }}>WALL</span>
+        </div>
       </div>
       <div className="flex items-center gap-4 text-xs font-mono">
         <div className="flex items-center gap-2">

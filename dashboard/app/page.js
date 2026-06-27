@@ -93,37 +93,49 @@ export default function Home() {
     <div className="min-h-screen flex flex-col bg-[#000000]">
       <TopBar version={data.model_version} generatedAt={data.generated_at} />
       
-      {/* Selectors */}
-      <div className="bg-[#111] border-b border-[#222] px-4 py-2 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <label className="text-xs text-[#888] uppercase tracking-wider">Select Event:</label>
-          <select 
-            className="bg-[#222] text-white text-sm px-3 py-1 rounded border border-[#333] outline-none focus:border-[#e10600] transition-colors"
-            value={currentEvent || ""}
-            onChange={(e) => setCurrentEvent(e.target.value)}
-          >
-            {events.length > 0 ? (
-              events.map((ev) => (
-                <option key={ev.event} value={ev.event}>
-                  Round {ev.round}: {ev.event}
-                </option>
-              ))
-            ) : (
-              <option value={currentEvent}>{currentEvent}</option>
-            )}
-          </select>
-        </div>
+      {/* Selectors Header */}
+      <div className="bg-[#0a0a0a] border-b border-[#222] px-6 py-3 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-6">
+          <div className="flex flex-col">
+            <label className="text-[10px] text-[#888] font-mono tracking-widest uppercase mb-1">Race Event</label>
+            <select 
+              className="bg-transparent text-white text-sm font-medium outline-none cursor-pointer hover:text-[#e10600] transition-colors appearance-none"
+              value={currentEvent || ""}
+              onChange={(e) => setCurrentEvent(e.target.value)}
+            >
+              {events.length > 0 ? (
+                events.map((ev) => (
+                  <option key={ev.event} value={ev.event} className="bg-[#111] text-white">
+                    Round {ev.round}: {ev.event}
+                  </option>
+                ))
+              ) : (
+                <option value={currentEvent} className="bg-[#111]">{currentEvent}</option>
+              )}
+            </select>
+          </div>
 
-        <div className="flex items-center gap-4">
-          <label className="text-xs text-[#888] uppercase tracking-wider">Prediction Model:</label>
-          <select 
-            className="bg-[#222] text-white text-sm px-3 py-1 rounded border border-[#333] outline-none focus:border-[#e10600] transition-colors"
-            value={currentModel}
-            onChange={(e) => setCurrentModel(e.target.value)}
-          >
-            <option value="mae">MAE (Deep Learning)</option>
-            <option value="rf">Random Forest (Baseline)</option>
-          </select>
+          <div className="h-8 w-px bg-[#333]"></div>
+
+          <div className="flex flex-col">
+            <label className="text-[10px] text-[#888] font-mono tracking-widest uppercase mb-1">Telemetry Model</label>
+            <select 
+              className="bg-transparent text-[#aaa] text-sm font-medium outline-none cursor-pointer hover:text-[#e10600] transition-colors appearance-none"
+              value={currentModel}
+              onChange={(e) => setCurrentModel(e.target.value)}
+            >
+              <option value="mae" className="bg-[#111] text-white">MAE (Deep Learning)</option>
+              <option value="rf" className="bg-[#111] text-white">Random Forest (Baseline)</option>
+            </select>
+          </div>
+        </div>
+        
+        <div className="text-[10px] text-[#555] font-mono uppercase tracking-widest">
+          {isLoading ? (
+             <span className="text-[#e10600] animate-pulse">Syncing Telemetry...</span>
+          ) : (
+             <span>System Ready</span>
+          )}
         </div>
       </div>
 

@@ -99,18 +99,18 @@ export default function Home() {
           <div className="flex flex-col">
             <label className="text-[10px] text-[#888] font-mono tracking-widest uppercase mb-1">Race Event</label>
             <select 
-              className="bg-transparent text-white text-sm font-medium outline-none cursor-pointer hover:text-[#e10600] transition-colors appearance-none pr-4 py-0.5"
+              className="bg-transparent text-white text-sm font-medium outline-none cursor-pointer hover:text-[#e10600] transition-colors appearance-none pr-4 py-1"
               value={currentEvent || ""}
               onChange={(e) => setCurrentEvent(e.target.value)}
             >
               {events.length > 0 ? (
                 events.map((ev) => (
-                  <option key={ev.event} value={ev.event} className="bg-[#111] text-white">
+                  <option key={ev.event} value={ev.event} className="bg-[#111] text-white py-2 px-3">
                     Round {ev.round}: {ev.event}
                   </option>
                 ))
               ) : (
-                <option value={currentEvent} className="bg-[#111]">{currentEvent}</option>
+                <option value={currentEvent} className="bg-[#111] text-white py-2 px-3">{currentEvent}</option>
               )}
             </select>
           </div>
@@ -120,12 +120,12 @@ export default function Home() {
           <div className="flex flex-col">
             <label className="text-[10px] text-[#888] font-mono tracking-widest uppercase mb-1">Telemetry Model</label>
             <select 
-              className="bg-transparent text-[#aaa] text-sm font-medium outline-none cursor-pointer hover:text-[#e10600] transition-colors appearance-none pr-4 py-0.5"
+              className="bg-transparent text-[#aaa] text-sm font-medium outline-none cursor-pointer hover:text-[#e10600] transition-colors appearance-none pr-4 py-1"
               value={currentModel}
               onChange={(e) => setCurrentModel(e.target.value)}
             >
-              <option value="mae" className="bg-[#111] text-white">MAE (Deep Learning)</option>
-              <option value="rf" className="bg-[#111] text-white">Random Forest (Baseline)</option>
+              <option value="mae" className="bg-[#111] text-white py-2 px-3">MAE (Deep Learning)</option>
+              <option value="rf" className="bg-[#111] text-white py-2 px-3">Random Forest (Baseline)</option>
             </select>
           </div>
         </div>

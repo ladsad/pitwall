@@ -9,6 +9,8 @@ import SessionPanel from "../components/SessionPanel";
 import FeatureImportance from "../components/FeatureImportance";
 import HistoricalAccuracy from "../components/HistoricalAccuracy";
 import Top3Summary from "../components/Top3Summary";
+import MaeMetricsPanel from "../components/MaeMetricsPanel";
+import { AnimatePresence, motion } from "framer-motion";
 
 export default function Home() {
   const [data, setData] = useState(null);
@@ -167,8 +169,32 @@ export default function Home() {
           <div className="h-[250px]">
             <WinnerCard driver={selectedDriver} />
           </div>
-          <div className="h-[150px]">
-            <SessionPanel driver={selectedDriver} />
+          <div className="h-[150px] relative overflow-hidden bg-[#000]">
+            <AnimatePresence mode="wait">
+              {currentModel === "mae" ? (
+                <motion.div 
+                  key="mae" 
+                  initial={{ opacity: 0, y: 10 }} 
+                  animate={{ opacity: 1, y: 0 }} 
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute inset-0"
+                >
+                  <MaeMetricsPanel driver={selectedDriver} />
+                </motion.div>
+              ) : (
+                <motion.div 
+                  key="base" 
+                  initial={{ opacity: 0, y: 10 }} 
+                  animate={{ opacity: 1, y: 0 }} 
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute inset-0"
+                >
+                  <SessionPanel driver={selectedDriver} />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
           <div className="flex-1">
             <Top3Summary predictions={data.predictions} lambda={data.recency_lambda} />

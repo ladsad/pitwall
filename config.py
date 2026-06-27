@@ -11,8 +11,8 @@ load_dotenv(_PROJECT_ROOT / ".env.local")
 load_dotenv(_PROJECT_ROOT / ".env")
 
 SEASON = 2026
-EVENT = "Barcelona Grand Prix"
-ROUND_NUMBER = 7
+EVENT = "Austrian Grand Prix"
+ROUND_NUMBER = 8
 
 SESSION_TYPES = ["FP1", "FP2", "FP3", "Q", "SQ", "S", "R"]
 

@@ -85,7 +85,7 @@ train_df.groupBy("round_number", "session_type").agg(
 
 #  FEATURE COLUMNS 
 
-CATEGORICAL_COLS = ["compound"]
+CATEGORICAL_COLS = ["compound", "team", "driver"]
 NUMERIC_COLS     = [
     "lap_time_delta",
     "consistency_score",
@@ -114,6 +114,18 @@ compound_indexer = StringIndexer(
     handleInvalid="keep",   # unseen compounds at prediction time → extra index bucket
 )
 
+team_indexer = StringIndexer(
+    inputCol="team",
+    outputCol="team_idx",
+    handleInvalid="keep",
+)
+
+driver_indexer = StringIndexer(
+    inputCol="driver",
+    outputCol="driver_idx",
+    handleInvalid="keep",
+)
+
 # race_position indexer: maps position integers (1, 2, 3...) to 0-based index.
 # GBTClassifier requires the label column to be 0-indexed doubles.
 label_indexer = StringIndexer(
@@ -123,7 +135,7 @@ label_indexer = StringIndexer(
 )
 
 assembler = VectorAssembler(
-    inputCols=NUMERIC_COLS + ["compound_idx"],
+    inputCols=NUMERIC_COLS + ["compound_idx", "team_idx", "driver_idx"],
     outputCol="features",
     handleInvalid="keep",   # rows with remaining nulls → zero imputation
 )
@@ -133,13 +145,15 @@ rf = RandomForestClassifier(
     featuresCol="features",
     labelCol="label",
     weightCol="sample_weight",
-    numTrees=100,        # 100 trees — stable estimates at this data size
-    maxDepth=4,          # shallow trees reduce overfitting on ~1300 rows
+    numTrees=150,        
+    maxDepth=8,          
     seed=42,
 )
 
 pipeline = Pipeline(stages=[
     compound_indexer,
+    team_indexer,
+    driver_indexer,
     label_indexer,
     assembler,
     rf,
@@ -183,7 +197,7 @@ if holdout_count > 0:
 
     # Top-3 accuracy: predicted position within 3 of actual
     # prediction column holds the indexed label — map back to position
-    label_model  = model.stages[1]          # the label StringIndexer model
+    label_model  = model.stages[3]          # the label StringIndexer model
     index_to_pos = {float(i): float(label_model.labels[i])
                     for i in range(len(label_model.labels))}
     index_to_pos_udf = F.udf(lambda idx: index_to_pos.get(idx, -1.0))
@@ -217,7 +231,7 @@ print("Done.")
 #  FEATURE IMPORTANCE 
 
 rf_model      = final_model.stages[-1]
-feature_names = NUMERIC_COLS + ["compound_idx"]
+feature_names = NUMERIC_COLS + ["compound_idx", "team_idx", "driver_idx"]
 importances   = rf_model.featureImportances.toArray()
 
 print("\nFeature importances:")
@@ -245,6 +259,8 @@ lr = LogisticRegression(
 
 lr_pipeline = Pipeline(stages=[
     compound_indexer,
+    team_indexer,
+    driver_indexer,
     label_indexer,
     assembler,
     lr,

@@ -40,7 +40,7 @@ import time
 from datetime import datetime, timezone
 
 try:
-    PROJECT_ROOT = pathlib.Path(__file__).resolve().parent
+    PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
 except NameError:
     PROJECT_ROOT = pathlib.Path.cwd()
 

@@ -110,7 +110,7 @@ predictions_raw = model.transform(predict_df)
 
 # ── MAP LABEL INDEX → FINISHING POSITION ─────────────────────────────────────
 
-label_indexer_model = model.stages[1]
+label_indexer_model = model.stages[3]
 labels = label_indexer_model.labels
 
 index_to_position = {float(i): int(labels[i]) for i in range(len(labels))}
@@ -137,12 +137,19 @@ predictions_raw = (
     .withColumn("pred_pos_lap", extract_pred_pos(F.col("prediction")).cast("integer"))
 )
 
+from pyspark.sql.types import FloatType
+def get_sess_weight(st):
+    return float(SESSION_WEIGHTS.get(st, 0.1))
+sess_weight_udf = F.udf(get_sess_weight, FloatType())
+
+predictions_raw = predictions_raw.withColumn("sess_weight", sess_weight_udf(F.col("session_type")))
+
 driver_preds = (
     predictions_raw
     .groupBy("driver")
     .agg(
         F.max("team").alias("team"),
-        F.max("win_prob_lap").alias("win_probability"),
+        (F.sum(F.col("win_prob_lap") * F.col("sess_weight")) / F.sum("sess_weight")).alias("win_probability"),
         F.first("pred_pos_lap").alias("predicted_position"),
         F.count("*").alias("lap_count"),
     )
@@ -203,6 +210,9 @@ FEATURE_COLS = [
     "tyre_deg_rate",
     "pace_vs_teammate",
     "pace_trend",
+    "compound_idx",
+    "team_idx",
+    "driver_idx",
 ]
 
 gbt_model   = model.stages[-1]

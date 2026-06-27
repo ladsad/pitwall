@@ -1,8 +1,16 @@
 import { createClient } from "@supabase/supabase-js";
-import fs from 'fs';
-import path from 'path';
 
 export const dynamic = 'force-dynamic';
+
+const ACTUAL_WINNERS = {
+    "Australian Grand Prix": "RUS",
+    "Chinese Grand Prix": "ANT",
+    "Japanese Grand Prix": "ANT",
+    "Miami Grand Prix": "ANT",
+    "Canadian Grand Prix": "ANT",
+    "Monaco Grand Prix": "ANT",
+    "Barcelona Grand Prix": "HAM"
+};
 
 export async function GET(request) {
   try {
@@ -75,40 +83,21 @@ export async function GET(request) {
     let sessionsUsed = [];
     let recencyLambda = null;
     try {
-        const jsonPath = path.join(process.cwd(), 'public', 'predictions.json');
-        const localData = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+        const origin = new URL(request.url).origin;
+        const res = await fetch(`${origin}/predictions.json`);
+        if (!res.ok) throw new Error("Failed to fetch predictions.json from origin");
+        const localData = await res.json();
         if (localData.season_accuracy) {
             localAccuracy = {
                 top3_pct: localData.season_accuracy.top3_pct || 0,
-                races: history.length || localData.season_accuracy.races || 0
+                races: localData.history?.length || localData.season_accuracy.races || 0
             };
         }
         if (localData.feature_importance) {
             featureImportance = localData.feature_importance;
         }
 
-        if (localData.history && localData.history.length > 0) {
-            localHistory = localData.history.map(h => {
-                // Dynamically find the selected model's prediction for this event
-                const modelPreds = allSeasonData.filter(p => 
-                    p.event === h.event && 
-                    p.predicted_position === 1 && 
-                    (p.model_version === selectedModel || (selectedModel && selectedModel.startsWith("base_") && p.model_version.startsWith("base_")))
-                );
-                
-                let predictedDriver = h.predicted;
-                if (modelPreds.length > 0) {
-                    predictedDriver = modelPreds[0].driver;
-                }
-                
-                return {
-                    event: h.event,
-                    actual: h.actual,
-                    predicted: predictedDriver,
-                    top3_hit: predictedDriver === h.actual
-                };
-            });
-        }
+        
         if (localData.sessions_used) {
             sessionsUsed = localData.sessions_used;
         }
@@ -116,8 +105,29 @@ export async function GET(request) {
             recencyLambda = localData.recency_lambda;
         }
     } catch (e) {
-        console.warn("Could not read local predictions.json, using fallback logic");
+        console.warn("Could not read local predictions.json, using fallback logic. Error:", e.message);
     }
+
+    // Dynamically build history table from hardcoded actual winners
+    localHistory = Object.entries(ACTUAL_WINNERS).map(([evt, actualDriver]) => {
+        const modelPreds = allSeasonData.filter(p => 
+            p.event === evt && 
+            p.predicted_position === 1 && 
+            (p.model_version === selectedModel || (selectedModel && selectedModel.startsWith("base_") && p.model_version.startsWith("base_")))
+        );
+        
+        let predictedDriver = "N/A";
+        if (modelPreds.length > 0) {
+            predictedDriver = modelPreds[0].driver;
+        }
+        
+        return {
+            event: evt,
+            actual: actualDriver,
+            predicted: predictedDriver,
+            top3_hit: predictedDriver === actualDriver
+        };
+    });
 
     return Response.json({
       model_version: selectedModel || "unknown",

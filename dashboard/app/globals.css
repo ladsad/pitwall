@@ -6,13 +6,24 @@ body {
   font-family: 'JetBrains Mono', 'Courier New', monospace;
   margin: 0;
   padding: 0;
-  /* Hide scrollbar for a cleaner look but allow scrolling */
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  /* Custom scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: #333333 #000000;
 }
 
-body::-webkit-scrollbar {
-  display: none;
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #000000;
+}
+::-webkit-scrollbar-thumb {
+  background: #333333;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #e10600;
 }
 
 * {

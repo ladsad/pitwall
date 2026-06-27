@@ -99,7 +99,7 @@ export default function Home() {
           <div className="flex flex-col">
             <label className="text-[10px] text-[#888] font-mono tracking-widest uppercase mb-1">Race Event</label>
             <select 
-              className="bg-transparent text-white text-sm font-medium outline-none cursor-pointer hover:text-[#e10600] transition-colors appearance-none"
+              className="bg-transparent text-white text-sm font-medium outline-none cursor-pointer hover:text-[#e10600] transition-colors appearance-none pr-4 py-0.5"
               value={currentEvent || ""}
               onChange={(e) => setCurrentEvent(e.target.value)}
             >
@@ -120,7 +120,7 @@ export default function Home() {
           <div className="flex flex-col">
             <label className="text-[10px] text-[#888] font-mono tracking-widest uppercase mb-1">Telemetry Model</label>
             <select 
-              className="bg-transparent text-[#aaa] text-sm font-medium outline-none cursor-pointer hover:text-[#e10600] transition-colors appearance-none"
+              className="bg-transparent text-[#aaa] text-sm font-medium outline-none cursor-pointer hover:text-[#e10600] transition-colors appearance-none pr-4 py-0.5"
               value={currentModel}
               onChange={(e) => setCurrentModel(e.target.value)}
             >

@@ -132,11 +132,11 @@ def ingest_session_telemetry(season: int, event: str, session_code: str) -> int:
     try:
         session = fastf1.get_session(season, event, session_code)
         session.load(laps=True, telemetry=True, weather=False, messages=False)
+        laps = session.laps.pick_quicklaps()
     except Exception as e:
-        print(f"    [error] {season} | {event} | {session_code} — load failed: {e}")
+        print(f"    [skip] {season} | {event} | {session_code} — data not available yet: {e}")
         return 0
 
-    laps = session.laps.pick_quicklaps()
     if laps.empty:
         print(f"    [skip] No quicklaps for {season} | {event} | {session_code}")
         return 0

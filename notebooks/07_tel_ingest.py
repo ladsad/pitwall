@@ -22,7 +22,7 @@ from pyspark.sql.types import (
 
 from utils.spark_session import get_spark_session
 from utils.tel_schema import TEL_BRONZE_SCHEMA
-from config import TELEMETRY_RAW_PATH, TEL_SEASONS, SESSION_TYPES
+from config import TELEMETRY_RAW_PATH, TEL_SEASONS, SESSION_TYPES, SEASON, EVENT
 
 spark = get_spark_session("pitwall-tel-ingest")
 
@@ -176,7 +176,10 @@ def ingest_session_telemetry(season: int, event: str, session_code: str) -> int:
 
 # ── LOOP OVER SEASONS / EVENTS / SESSIONS ────────────────────────────────────
 
-print(f"Telemetry ingestion: seasons {TEL_SEASONS}")
+is_backfill = os.environ.get("PIPELINE") in ["tel_backfill", "full_mae"]
+target_seasons = TEL_SEASONS if is_backfill else [SEASON]
+
+print(f"Telemetry ingestion: backfill={is_backfill}")
 print(f"Sessions targeted  : {TEL_SESSION_TYPES}")
 print(f"Output root        : {TELEMETRY_RAW_PATH}\n")
 
@@ -184,9 +187,12 @@ total_laps      = 0
 total_sessions  = 0
 skipped_count   = 0
 
-for year in TEL_SEASONS:
-    schedule = fastf1.get_event_schedule(year, include_testing=False)
-    events   = schedule["EventName"].tolist()
+for year in target_seasons:
+    if is_backfill:
+        schedule = fastf1.get_event_schedule(year, include_testing=False)
+        events   = schedule["EventName"].tolist()
+    else:
+        events   = [EVENT]
 
     print(f"\n── Season {year} — {len(events)} events ──────────────────────────────")
 

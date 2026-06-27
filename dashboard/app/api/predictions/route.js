@@ -97,26 +97,6 @@ export async function GET(request) {
             featureImportance = localData.feature_importance;
         }
 
-        // Dynamically build history table from hardcoded actual winners
-        localHistory = Object.entries(ACTUAL_WINNERS).map(([evt, actualDriver]) => {
-            const modelPreds = allSeasonData.filter(p => 
-                p.event === evt && 
-                p.predicted_position === 1 && 
-                (p.model_version === selectedModel || (selectedModel && selectedModel.startsWith("base_") && p.model_version.startsWith("base_")))
-            );
-            
-            let predictedDriver = "N/A";
-            if (modelPreds.length > 0) {
-                predictedDriver = modelPreds[0].driver;
-            }
-            
-            return {
-                event: evt,
-                actual: actualDriver,
-                predicted: predictedDriver,
-                top3_hit: predictedDriver === actualDriver
-            };
-        });
         
         if (localData.sessions_used) {
             sessionsUsed = localData.sessions_used;
@@ -127,6 +107,27 @@ export async function GET(request) {
     } catch (e) {
         console.warn("Could not read local predictions.json, using fallback logic. Error:", e.message);
     }
+
+    // Dynamically build history table from hardcoded actual winners
+    localHistory = Object.entries(ACTUAL_WINNERS).map(([evt, actualDriver]) => {
+        const modelPreds = allSeasonData.filter(p => 
+            p.event === evt && 
+            p.predicted_position === 1 && 
+            (p.model_version === selectedModel || (selectedModel && selectedModel.startsWith("base_") && p.model_version.startsWith("base_")))
+        );
+        
+        let predictedDriver = "N/A";
+        if (modelPreds.length > 0) {
+            predictedDriver = modelPreds[0].driver;
+        }
+        
+        return {
+            event: evt,
+            actual: actualDriver,
+            predicted: predictedDriver,
+            top3_hit: predictedDriver === actualDriver
+        };
+    });
 
     return Response.json({
       model_version: selectedModel || "unknown",

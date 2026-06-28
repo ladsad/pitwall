@@ -67,24 +67,16 @@ export default function WinnerCard({ driver }) {
             
             <div 
               style={{ backgroundColor: '#0d0000', border: '1px solid #2a0000' }}
-              className="w-full py-2 flex flex-col items-center justify-center mb-4"
+              className="w-full py-3 flex flex-col items-center justify-center mb-2"
             >
               <span className="text-[10px] text-[#e10600] tracking-[0.14em] uppercase mb-1">Win Probability</span>
-              <span className="text-3xl font-bold text-[#ffffff]">
-                <AnimatedCounter value={driver.win_probability} duration={600} triggerKey={driver.driver} />
-              </span>
-            </div>
-            
-            <div className="w-full grid grid-cols-2 gap-4">
-              <div className="flex flex-col items-center">
-                <span className="text-[9px] text-[#666666] uppercase tracking-widest mb-1">Uncertainty</span>
-                <span className="text-[#e8e8e8] text-sm font-bold">
-                  {driver.uncertainty < 0.05 ? 'LOW' : driver.uncertainty < 0.15 ? 'MED' : 'HIGH'}
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-bold text-[#ffffff]">
+                  <AnimatedCounter value={driver.win_probability} duration={600} triggerKey={driver.driver} />
                 </span>
-              </div>
-              <div className="flex flex-col items-center">
-                <span className="text-[9px] text-[#666666] uppercase tracking-widest mb-1">Bootstrap N</span>
-                <span className="text-[#e8e8e8] text-sm font-bold">1000</span>
+                <span className="text-xs text-[#666666]">
+                  ±{(driver.uncertainty * 100).toFixed(1)}%
+                </span>
               </div>
             </div>
           </motion.div>

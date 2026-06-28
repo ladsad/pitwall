@@ -35,7 +35,7 @@ os.makedirs(os.path.dirname(CKPT_PATH), exist_ok=True)
 # If you change ENCODER_HPARAMS, delete mae_checkpoint.pt and retrain from scratch.
 
 TRAIN_CFG = dict(
-    total_epochs   = 200,
+    total_epochs   = 220,
     warmup_epochs  = 10,
     base_lr        = 1.5e-4,    # cosine decay from this peak
     min_lr         = 1e-6,

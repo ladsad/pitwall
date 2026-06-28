@@ -32,7 +32,7 @@ FINETUNED_MODEL = str(BASE_PATH / "models" / "mae_finetuned.pt")
 FINETUNE_CFG = dict(
     # Two-phase schedule
     linear_probe_epochs = 10,   # Phase 1: encoder frozen, train head only
-    full_finetune_epochs= 40,   # Phase 2: encoder + head, lower LR
+    full_finetune_epochs= 50,   # Phase 2: encoder + head, lower LR
     # LR for each phase
     head_lr             = 1e-3,
     full_lr             = 1e-4,

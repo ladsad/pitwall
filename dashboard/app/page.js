@@ -150,7 +150,7 @@ export default function Home() {
 
       <div style={{ backgroundColor: '#141414' }} className={`flex-1 grid grid-cols-1 lg:grid-cols-[65%_35%] gap-[1px] transition-opacity duration-300 ${isLoading ? "opacity-50 pointer-events-none" : "opacity-100"}`}>
         {/* Left Column */}
-        <div className="flex flex-col gap-[1px]">
+        <div className="flex flex-col gap-[1px] order-2 lg:order-1">
           <div className="h-[300px] md:h-[400px]">
             <DriverRanking
               predictions={data.predictions}
@@ -165,7 +165,7 @@ export default function Home() {
         </div>
 
         {/* Right Column */}
-        <div className="flex flex-col gap-[1px]">
+        <div className="flex flex-col gap-[1px] order-1 lg:order-2">
           <div className="h-[250px]">
             <WinnerCard driver={selectedDriver} />
           </div>

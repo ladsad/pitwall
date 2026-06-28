@@ -41,7 +41,7 @@ export default function WinnerCard({ driver }) {
   if (!driver) return null;
 
   return (
-    <div className="flex flex-col h-full bg-[#000000] overflow-y-auto">
+    <div className="flex flex-col h-auto md:h-full bg-[#000000] overflow-y-auto min-h-[250px]">
       <div className="px-4 py-3 border-b border-[#141414]">
         <h2 className="text-[9px] text-[#e10600] tracking-[0.14em] uppercase m-0">Predicted Winner</h2>
       </div>

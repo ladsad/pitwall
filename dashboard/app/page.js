@@ -96,8 +96,8 @@ export default function Home() {
       <TopBar version={data.model_version} generatedAt={data.generated_at} />
       
       {/* Selectors Header */}
-      <div className="bg-[#0a0a0a] border-b border-[#222] px-6 py-3 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-6">
+      <div className="bg-[#0a0a0a] border-b border-[#222] px-4 md:px-6 py-3 flex flex-col md:flex-row items-start md:items-center justify-between shadow-sm gap-3 md:gap-0">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 md:gap-6 w-full md:w-auto">
           <div className="flex flex-col">
             <label className="text-[10px] text-[#888] font-mono tracking-widest uppercase mb-1">Race Event</label>
             <select 
@@ -117,7 +117,7 @@ export default function Home() {
             </select>
           </div>
 
-          <div className="h-8 w-px bg-[#333]"></div>
+          <div className="hidden sm:block h-8 w-px bg-[#333]"></div>
 
           <div className="flex flex-col">
             <label className="text-[10px] text-[#888] font-mono tracking-widest uppercase mb-1">Telemetry Model</label>
@@ -132,7 +132,7 @@ export default function Home() {
           </div>
         </div>
         
-        <div className="text-[10px] text-[#555] font-mono uppercase tracking-widest">
+        <div className="text-[10px] text-[#555] font-mono uppercase tracking-widest self-start md:self-auto">
           {isLoading ? (
              <span className="text-[#e10600] animate-pulse">Syncing Telemetry...</span>
           ) : (
@@ -151,14 +151,14 @@ export default function Home() {
       <div style={{ backgroundColor: '#141414' }} className={`flex-1 grid grid-cols-1 lg:grid-cols-[65%_35%] gap-[1px] transition-opacity duration-300 ${isLoading ? "opacity-50 pointer-events-none" : "opacity-100"}`}>
         {/* Left Column */}
         <div className="flex flex-col gap-[1px]">
-          <div className="h-[400px]">
+          <div className="h-[300px] md:h-[400px]">
             <DriverRanking
               predictions={data.predictions}
               selectedDriver={selectedDriver}
               onSelectDriver={setSelectedDriver}
             />
           </div>
-          <div className="grid grid-cols-2 gap-[1px] flex-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-[1px] flex-1">
             <FeatureImportance features={selectedDriver?.feature_importance?.length > 0 ? selectedDriver.feature_importance : data.feature_importance} />
             <HistoricalAccuracy history={data.history} />
           </div>
@@ -203,8 +203,8 @@ export default function Home() {
       </div>
 
       {/* Footer */}
-      <footer style={{ backgroundColor: '#111111', borderTop: '1px solid #141414' }} className="py-2 px-4 flex justify-between items-center text-[9px] text-[#666666] tracking-widest uppercase">
-        <div className="flex items-center gap-4">
+      <footer style={{ backgroundColor: '#111111', borderTop: '1px solid #141414' }} className="py-4 md:py-2 px-4 flex flex-col md:flex-row justify-between items-center text-[9px] text-[#666666] tracking-widest uppercase gap-3 md:gap-0">
+        <div className="flex flex-wrap justify-center md:justify-start items-center gap-2 md:gap-4">
           <span>PITWALL v0.1.0</span>
           <span>·</span>
           <span>DATA FastF1</span>
@@ -213,7 +213,7 @@ export default function Home() {
           <span>·</span>
           <span>DEPLOY Vercel · auto</span>
         </div>
-        <div>NOT AFFILIATED WITH FIA OR FORMULA 1</div>
+        <div className="text-center md:text-right mt-2 md:mt-0">NOT AFFILIATED WITH FIA OR FORMULA 1</div>
       </footer>
     </div>
   );

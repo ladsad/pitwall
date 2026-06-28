@@ -106,11 +106,11 @@ export default function DriverRanking({ predictions, selectedDriver, onSelectDri
                   </div>
                 </div>
                 
-                <div className="w-20 text-right text-xs text-[#666666] ml-4 relative z-10">
+                <div className="hidden md:block w-20 text-right text-xs text-[#666666] ml-4 relative z-10">
                   ±{(p.uncertainty * 100).toFixed(1)}
                 </div>
                 
-                <div className="w-8 text-right ml-2 text-xs relative z-10">
+                <div className="hidden md:block w-8 text-right ml-2 text-xs relative z-10">
                   {p.trend === 'up' && <span className="text-green-500">▲</span>}
                   {p.trend === 'down' && <span className="text-red-500">▼</span>}
                   {p.trend === 'flat' && <span className="text-[#666666]">—</span>}

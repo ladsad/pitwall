@@ -13,13 +13,13 @@ export default function TopBar({ version, generatedAt }) {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4 }}
       style={{ backgroundColor: '#111111', borderBottom: '1px solid #141414' }} 
-      className="flex justify-between items-center px-4 py-3 sticky top-0 z-50"
+      className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-4 py-3 sticky top-0 z-50 gap-2 sm:gap-0"
     >
       <div className="flex items-center gap-1 font-bold text-lg tracking-wider">
         <span style={{ color: '#ffffff' }}>PIT</span>
         <span style={{ color: '#e10600' }}>WALL</span>
       </div>
-      <div className="flex items-center gap-4 text-xs font-mono">
+      <div className="flex flex-wrap items-center gap-4 text-xs font-mono w-full sm:w-auto justify-between sm:justify-end">
         <div className="flex items-center gap-2">
           <span className="relative flex h-2 w-2">
             {!shouldReduceMotion && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>}

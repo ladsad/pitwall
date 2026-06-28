@@ -56,7 +56,7 @@ export default function WinnerCard({ driver }) {
             transition={{ duration: 0.2, exit: { duration: 0.15 } }}
             className="w-full flex flex-col items-center justify-center"
           >
-            <div className="text-[50px] leading-none font-bold text-[#ffffff] mb-1 tracking-tighter">
+            <div className="text-[36px] md:text-[50px] leading-none font-bold text-[#ffffff] mb-1 tracking-tighter text-center">
               {driver.driver}
             </div>
             

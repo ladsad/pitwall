@@ -18,7 +18,7 @@ export default function HeroStrip({ round, event, sessions, accuracy }) {
   ];
 
   return (
-    <div style={{ backgroundColor: '#141414', borderBottom: '1px solid #141414' }} className="grid grid-cols-4 gap-[1px]">
+    <div style={{ backgroundColor: '#141414', borderBottom: '1px solid #141414' }} className="grid grid-cols-2 md:grid-cols-4 gap-[1px]">
       {cells.map((cell, idx) => (
         <motion.div 
           key={idx}

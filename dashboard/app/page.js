@@ -169,7 +169,7 @@ export default function Home() {
           <div className="h-auto md:h-[250px]">
             <WinnerCard driver={selectedDriver} />
           </div>
-          <div className="h-[150px] relative overflow-hidden bg-[#000]">
+          <div className="h-auto md:h-[150px] relative overflow-hidden bg-[#000]">
             <AnimatePresence mode="wait">
               {currentModel === "mae" ? (
                 <motion.div 
@@ -178,7 +178,7 @@ export default function Home() {
                   animate={{ opacity: 1, y: 0 }} 
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.2 }}
-                  className="absolute inset-0"
+                  className="w-full h-full"
                 >
                   <MaeMetricsPanel driver={selectedDriver} />
                 </motion.div>
@@ -189,7 +189,7 @@ export default function Home() {
                   animate={{ opacity: 1, y: 0 }} 
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.2 }}
-                  className="absolute inset-0"
+                  className="w-full h-full"
                 >
                   <SessionPanel driver={selectedDriver} />
                 </motion.div>

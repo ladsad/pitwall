@@ -7,7 +7,7 @@ export const metadata = {
   openGraph: {
     title: "Pitwall | F1 Predictive Analytics",
     description: "AI-driven Formula 1 race predictions using custom Masked Autoencoders and live telemetry.",
-    url: "https://pitwall.vercel.app",
+    url: "https://pitwall-f1-six.vercel.app/",
     siteName: "Pitwall",
     images: [
       {

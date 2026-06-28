@@ -166,7 +166,7 @@ export default function Home() {
 
         {/* Right Column */}
         <div className="flex flex-col gap-[1px] order-1 lg:order-2">
-          <div className="h-[250px]">
+          <div className="h-auto min-h-[250px] md:h-[250px]">
             <WinnerCard driver={selectedDriver} />
           </div>
           <div className="h-[150px] relative overflow-hidden bg-[#000]">

@@ -16,35 +16,40 @@ from pyspark.sql import Window
 from pyspark.sql.types import FloatType, IntegerType, ArrayType
 
 from utils.spark_session import get_spark_session
-from config import SEASON, EVENT, RAW_PATH, TELEMETRY_CLEAN_PATH, FEATURES_PATH
+from config import RAW_PATH, TELEMETRY_CLEAN_PATH
 from utils.schema import BRONZE_SCHEMA
 from utils.tel_schema import TEL_SILVER_SCHEMA
 
 spark = get_spark_session("pitwall-ssm-prep")
 
-print(f"SSM Data Prep: Season {SEASON} | Event: {EVENT}")
+print("SSM Data Prep: Processing all historical race sessions...")
 
 # ── LOAD TELEMETRY (SILVER) ──────────────────────────────────────────────────
 # Telemetry Silver has `channels` (6, 1024) and `lap_number`
 silver_tel_path = str(TELEMETRY_CLEAN_PATH / "silver")
+if not os.path.exists(silver_tel_path):
+    print("Silver telemetry not found. Run 08_tel_preprocess.py first.")
+    sys.exit(0)
+
 silver_tel_df = (
     spark.read.schema(TEL_SILVER_SCHEMA).parquet(silver_tel_path)
-         .filter((F.col("season") == SEASON) & (F.col("event") == EVENT) & (F.col("session_type") == "R"))
+         .filter(F.col("session_type") == "R")
 )
 
-print(f"Race telemetry laps loaded: {silver_tel_df.count():,}")
+print(f"Total race telemetry laps loaded: {silver_tel_df.count():,}")
 
 # ── LOAD LAP TIMES (BRONZE) ──────────────────────────────────────────────────
 # We use Bronze to get ALL laps, including pit laps and safety car laps, 
 # which were dropped from Gold by the 107% rule.
-bronze_laps_path = str(RAW_PATH / f"season={SEASON}" / f"event={EVENT}")
-if not os.path.exists(bronze_laps_path):
+if not os.path.exists(str(RAW_PATH)):
     print("Bronze laps not found.")
     sys.exit(0)
 
 raw_laps_df = (
-    spark.read.schema(BRONZE_SCHEMA).parquet(bronze_laps_path)
-         .filter((F.col("season") == SEASON) & (F.col("event") == EVENT) & (F.col("session_type") == "R"))
+    spark.read.schema(BRONZE_SCHEMA)
+         .option("basePath", str(RAW_PATH))
+         .parquet(str(RAW_PATH))
+         .filter(F.col("session_type") == "R")
 )
 
 # Clean critical nulls but KEEP outlier/pit laps
@@ -74,14 +79,14 @@ raw_laps_df = raw_laps_df.withColumn(
 # We now join the continuous bronze laps with the telemetry laps.
 # Sometimes fastf1 fails to get telemetry for a lap, which might create a gap.
 joined_df = raw_laps_df.join(
-    silver_tel_df.select("driver", "lap_number", "channels"),
-    on=["driver", "lap_number"],
+    silver_tel_df.select("season", "event", "driver", "lap_number", "channels"),
+    on=["season", "event", "driver", "lap_number"],
     how="inner"
 )
 
 # ── EXTRACT CONTINUOUS STINTS ────────────────────────────────────────────────
 # A continuous stint is unbroken if the difference between row_number and lap_number is constant.
-driver_w = Window.partitionBy("driver").orderBy("lap_number")
+driver_w = Window.partitionBy("season", "event", "driver").orderBy("lap_number")
 
 joined_df = joined_df.withColumn(
     "row_num", F.row_number().over(driver_w)
@@ -105,7 +110,7 @@ def collect_sorted(col_name):
     )
 
 stints_df = (
-    joined_df.groupBy("driver", "stint_id")
+    joined_df.groupBy("season", "event", "driver", "stint_id")
     .agg(
         F.count("lap_number").alias("stint_length"),
         F.array_sort(F.collect_list("lap_number")).alias("lap_numbers"),
@@ -120,13 +125,13 @@ stints_df = (
 )
 
 print(f"\nContinuous racing stints found: {stints_df.count():,}")
-stints_df.select("driver", "stint_id", "stint_length").orderBy(F.desc("stint_length")).show(20)
+stints_df.select("season", "event", "driver", "stint_id", "stint_length").orderBy(F.desc("stint_length")).show(20)
 
 # Validate output columns
 print("\nExtracted Columns for SSM:")
 stints_df.printSchema()
 
 # Save the prepped data to a new path for SSM training
-SSM_PREP_PATH = str(PROJECT_ROOT / "data" / "ssm_prep" / f"season={SEASON}" / f"event={EVENT}")
-stints_df.write.mode("overwrite").parquet(SSM_PREP_PATH)
+SSM_PREP_PATH = str(PROJECT_ROOT / "data" / "ssm_prep")
+stints_df.write.mode("overwrite").partitionBy("season", "event").parquet(SSM_PREP_PATH)
 print(f"\nSSM Prep Data written to: {SSM_PREP_PATH}")
